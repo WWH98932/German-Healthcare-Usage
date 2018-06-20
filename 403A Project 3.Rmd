@@ -1,0 +1,402 @@
+---
+title: "403A Project3 I(a)(b)(c)"
+author: "Yining Qian"
+date: "2017/12/4"
+output: pdf_document
+---
+# Problem 1
+```{r}
+attach(healthcare.data)
+```
+(a) In this section, we firstly load the data from the website and find there are some missing data inside, so we use the function of "complete cases" to list all the rows of data that DONT have missing values.   
+```{r}
+library(readxl)
+healthcare.data<-read.csv("C:/Users/lenovo/Desktop/german_healthcare_usage.csv")
+healthcare.data<- healthcare.data[complete.cases(healthcare.data),]
+```
+Next, we are going to plot a histogram of different quantitiative variables. 
+They are "AGE","ALC","HANDPER","EDUC","DOCVIS","HOSPVIS","NUMOBS""HSAT""LOGINC""HHNINC""NEWHSAT""PRESCRIP".  
+(1)plot a histogram of variable "age"
+```{r}
+library(fitdistrplus)
+hist(healthcare.data$AGE,main="Histogram of Age ",col=8,ylim=c(0,0.03),prob=TRUE)
+lines(density(healthcare.data$AGE),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$AGE,boot=1000)
+```
+
+As we can see from the Cullen and Frey graph above, the variable "AGE" fits a uniform distribution because the "observation"(blue circile) perfectly covers the "triangle"(Uniform Distribution).  
+
+(2)Plot a histogram of variable "ALC"
+```{r}
+hist(healthcare.data$ALC,main="Histogram of ALC ",col=8,ylim=c(0,0.03),prob=TRUE)
+lines(density(healthcare.data$ALC),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$ALC,boot=1000)
+```
+As we can see from the Cullen and Frey graph above, the variable "ALC" fits a uniform distribution because the "observation"(blue circile) perfectly covers the "triangle"(Uniform Distribution)
+
+(3)Plot a histogram of variable "LOGINC"
+```{r}
+hist(healthcare.data$LOGINC,col=8,ylim=c(0,1.1),main="Histogram of LOGINC ",prob=TRUE)
+lines(density(healthcare.data$LOGINC),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$LOGINC,boot=1000)
+```
+As we can see from the graph above, it is not easy to decide between "norm" and "logistic" distribution.So next, we are going to verify whether it is "norm" or "logistic".
+```{r}
+fit_loginc1<-fitdist(healthcare.data$LOGINC,"norm")
+fit_loginc2<-fitdist(healthcare.data$LOGINC,"logis")
+plot(fit_loginc1)
+plot(fit_loginc2)
+cdfcomp(list(fit_loginc1,fit_loginc2))
+par(mfrow=c(2,2))
+plot.legend<-c("normal","logis")
+cdfcomp(list(fit_loginc1,fit_loginc2),legendtext=c("normal","logistic"))
+denscomp(list(fit_loginc1,fit_loginc2),legendtext=c("normal","logistic"))
+qqcomp(list(fit_loginc1,fit_loginc2),legendtext=c("normal","logistic"))
+ppcomp(list(fit_loginc1,fit_loginc2),legendtext=c("normal","logistic"))
+gofstat(list(fit_loginc1,fit_loginc2),fitnames=c("normal","logistic"))
+```
+
+As we can see from the results above, "LOGINC" fits normal distribution better. 
+
+(4)Plot a histogram of variable "HHNINC"
+```{r}
+hist(healthcare.data$HHNINC,col=8,ylim=c(0,1.1),main="Histogram of HHNINC ",prob=TRUE)
+lines(density(healthcare.data$HHNINC),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$HHNINC,boot=1000)
+```
+
+As we can see from the results above, it's hard to define which distribution we could fit. Therefore, we need to verify whether it is "gamma" or "lognormal".
+```{r}
+fit_hhninc1<-fitdist(healthcare.data$HHNINC,"gamma")
+fit_hhninc2<-fitdist(healthcare.data$HHNINC,"lnorm")
+plot(fit_hhninc1)
+plot(fit_hhninc2)
+cdfcomp(list(fit_hhninc1,fit_hhninc2))
+par(mfrow=c(2,2))
+plot.legend<-c("gamma","lognormal")
+cdfcomp(list(fit_hhninc1,fit_hhninc2),legendtext=c("gamma","lognormal"))
+denscomp(list(fit_hhninc1,fit_hhninc2),legendtext=c("gamma","lognormal"))
+qqcomp(list(fit_hhninc1,fit_hhninc2),legendtext=c("gamma","lognormal"))
+ppcomp(list(fit_hhninc1,fit_hhninc2),legendtext=c("gamma","lognormal"))
+gofstat(list(fit_hhninc1,fit_hhninc2),fitnames=c("gamma","lognormal"))
+```
+From the results above, "HHNINC" fits gamma distribution better.  
+
+(5)Plot a histogram of variable "EDUC"
+```{r}
+hist(healthcare.data$EDUC,col=8,ylim=c(0,1.1),main="Histogram of EDUC",prob=TRUE)
+lines(density(healthcare.data$EDUC),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$EDUC,boot=1000)
+```
+As we can see from the results above, it's hard to define which distribution we could fit. Therefore, we need to verify whether it is "beta" or "lognormal".  
+```{r}
+fit_educ1<-fitdist(healthcare.data$EDUC,"gamma")
+fit_educ2<-fitdist(healthcare.data$EDUC,"lnorm")
+plot(fit_educ1)
+plot(fit_educ2)
+cdfcomp(list(fit_educ1,fit_educ2))
+par(mfrow=c(2,2))
+plot.legend<-c("gamma","lognormal")
+cdfcomp(list(fit_educ1,fit_educ2),legendtext=c("gamma","lognormal"))
+denscomp(list(fit_educ1,fit_educ2),legendtext=c("gamma","lognormal"))
+qqcomp(list(fit_educ1,fit_educ2),legendtext=c("gamma","lognormal"))
+ppcomp(list(fit_educ1,fit_educ2),legendtext=c("gamma","lognormal"))
+gofstat(list(fit_educ1,fit_educ2),fitnames=c("gamma","lognormal"))
+```
+From the results above, "EDUC" fits lognormal distribution better.  
+(6)Plot a histogram of variable "DOCVIS"
+```{r}
+hist(healthcare.data$DOCVIS,col=8,ylim=c(0,1.1),main="Histogram of DOCVIS",prob=TRUE)
+lines(density(healthcare.data$DOCVIS),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$DOCVIS,boot=1000)
+```
+From the results above, "DOCVIS" fits lognormal distribution better.  
+(7)Plot a histogram of variable "HOSPVIS"
+```{r}
+hist(healthcare.data$HOSPVIS,col=8,ylim=c(0,1.1),main="Histogram of HOSPVIS",prob=TRUE)
+lines(density(healthcare.data$HOSPVIS),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$HOSPVIS,boot=1000)
+```
+From the results above, "HOSPVIS" fits beta distribution better.  
+(8)Plot a histogram of variable "NUMOBS"
+```{r}
+hist(healthcare.data$NUMOBS,col=8,ylim=c(0,1.1),main="Histogram of NUMOBS",prob=TRUE)
+lines(density(healthcare.data$NUMOBS),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$NUMOBS,boot=1000)
+```
+As we can see from the results above, it's hard to define which distribution we could fit. Therefore, we need to verify whether it is "uniform" ,"gamma" or "normal". 
+```{r}
+fit_numobs1<-fitdist(healthcare.data$NUMOBS,"unif")
+fit_numobs2<-fitdist(healthcare.data$NUMOBS,"norm")
+fit_numobs3<-fitdist(healthcare.data$NUMOBS,"gamma")
+plot(fit_numobs1)
+plot(fit_numobs2)
+plot(fit_numobs3)
+cdfcomp(list(fit_numobs1,fit_numobs2,fit_numobs3))
+par(mfrow=c(3,3))
+plot.legend<-c("uniform","norm","gamma")
+cdfcomp(list(fit_numobs1,fit_numobs2,fit_numobs3),legendtext=c("uniform","normal","gamma"))
+denscomp(list(fit_numobs1,fit_numobs2,fit_numobs3),legendtext=c("uniform","normal","gamma"))
+qqcomp(list(fit_numobs1,fit_numobs2,fit_numobs3),legendtext=c("uniform","normal","gamma"))
+ppcomp(list(fit_numobs1,fit_numobs2,fit_numobs3),legendtext=c("uniform","normal","gamma"))
+gofstat(list(fit_numobs1,fit_numobs2,fit_numobs3),fitnames=c("uniform","normal","gamma"))
+```
+From the results above, "NUMOBS" fits lognormal distribution better.  
+(9)Plot a histogram of variable "HANDPER"
+```{r}
+hist(healthcare.data$HANDPER,col=8,ylim=c(0,1.1),main="Histogram of HANDPER",prob=TRUE)
+lines(density(healthcare.data$HANDPER),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$HANDPER,boot=1000)
+```
+From the results above, "HANDPER" fits gamma distribution better.  
+(10)Plot a histogram of variable "NEWHSAT"
+```{r}
+hist(healthcare.data$NEWHSAT,col=8,ylim=c(0,1.1),main="Histogram of NEWHSAT",prob=TRUE)
+lines(density(healthcare.data$NEWHSAT),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$NEWHSAT,boot=1000)
+```
+From the results above, "HSAT" fits normal distribution better. 
+
+(11)Plot a histogram of variable "PRESCRIP"
+```{r}
+hist(healthcare.data$PRESCRIP,col=8,ylim=c(0,1.1),main="Histogram of PRESCRIP",prob=TRUE)
+lines(density(healthcare.data$PRESCRIP),ylab="Frequency",col="red",lwd=2)
+legend('topright',c("Histogram","Density"),fill=c("8","red"))
+descdist(healthcare.data$PRESCRIP,boot=1000)
+```
+From the results above, "HSAT" fits lognormal distribution better.  
+
+(b) barplot
+(1)barplot of variable "FEMALE"
+```{r}
+## Simple bar plot
+counts<-table(FEMALE)
+barplot(counts,main="Female",xlab="Gender Condition",col=c("0","8"),ylim=c(0,18000))
+
+## Add a legend
+legend('topright',c("Male","Female"),fill=c("0","8"))
+```
+(2)barplot of variable "YEAR"
+```{r}
+## Simple bar plot
+counts<-table(YEAR)
+barplot(counts,main="Year",xlab="Year",col=c("0","1","2","3","4","8"))
+
+## Add a legend
+legend('topright',c("YEAR"),fill=c("0","8"))
+```
+(3)barplot of variable "HANDDUM"
+```{r}
+## Simple bar plot
+counts<-table(HANDDUM)
+barplot(counts,main="HANDDUM",xlab="HANDDUM condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","handicapped"),fill=c("0","8"))
+```
+(4)barplot of variable "HHKIDS"
+```{r}
+## Simple bar plot
+counts<-table(HHKIDS)
+barplot(counts,main="HHKIDS",xlab="Children under 16 in the household condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Children under 16"),fill=c("0","8"))
+```
+(5)barplot of variable "MARRIED"
+```{r}
+## Simple bar plot
+counts<-table(MARRIED) 
+barplot(counts,main="MARRIED",xlab="Married condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Married"),fill=c("0","8"))
+```
+
+(6)barplot of variable "HAUPTS"
+```{r}
+## Simple bar plot
+counts<-table(HAUPTS)
+barplot(counts,main="HAUPTS",xlab="Highest Schooling degree is Hauptschul Degree condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Highest Schooling degree is Hauptschul Degree"),fill=c("0","8"))
+```
+
+(7)barplot of variable "REALS"
+```{r}
+## Simple bar plot
+counts<-table(REALS)
+barplot(counts,main="REALS",xlab="Highest Schooling degree is Realschul Degree condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Highest Schooling degree is Realschul Degree"),fill=c("0","8"))
+```
+
+(8)barplot of variable "FACHHS"
+```{r}
+## Simple bar plot
+counts<-table(FACHHS)
+barplot(counts,main="FACHHS",xlab="Highest Schooling degree is Polytechnical Degree condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Highest Schooling degree is Polytechnical Degree"),fill=c("0","8"))
+```
+
+(9)barplot of variable "ABITUR"
+```{r}
+## Simple bar plot
+counts<-table(ABITUR)
+barplot(counts,main="ABITUR",xlab="Highest Schooling degree is ABITUR condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Highest Schooling degree is ABITUR"),fill=c("0","8"))
+```
+
+(10)barplot of variable "UNIV"
+```{r}
+## Simple bar plot
+counts<-table(UNIV)
+barplot(counts,main="UNIV",xlab="Highest Schooling degree is University Degree condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Highest Schooling degree is University Degree"),fill=c("0","8"))
+```
+
+(11)barplot of variable "WORKING"
+```{r}
+## Simple bar plot
+counts<-table(WORKING)
+barplot(counts,main="WORKING",xlab="Working condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Working"),fill=c("0","8"))
+```
+
+(12)barplot of variable "BLUEC"
+```{r}
+## Simple bar plot
+counts<-table(BLUEC)
+barplot(counts,main="BLUEC",xlab="Blue Collar Employee condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Blue Collar Employee"),fill=c("0","8"))
+```
+
+(13)barplot of variable "WHITEC"
+```{r}
+## Simple bar plot
+counts<-table(WHITEC)
+barplot(counts,main="WHITEC",xlab="White Collar Employee condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","White Collar Employee"),fill=c("0","8"))
+```
+
+(14)barplot of variable "SELF"
+```{r}
+## Simple bar plot
+counts<-table(SELF)
+barplot(counts,main="SELF",xlab="Self Employed condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Self Employed"),fill=c("0","8"))
+```
+
+(15)barplot of variable "BEAMT"
+```{r}
+## Simple bar plot
+counts<-table(BEAMT)
+barplot(counts,main="BEAMT",xlab="Civil servant condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Civil Servant"),fill=c("0","8"))
+```
+
+(16)barplot of variable "UNEMPLOY"
+```{r}
+## Simple bar plot
+counts<-table(UNEMPLOY)
+barplot(counts,main="UNEMPLOY",xlab="Umemployed condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Umemployed"),fill=c("0","8"))
+```
+
+(17)barplot of variable "HSAT"
+```{r}
+## Simple bar plot
+counts<-table(HSAT)
+barplot(counts,main="HSAT",xlab="Health Satisfaction condition",col=c("0","1","2","3","4","5","6","7","8","9","10"))
+
+## Add a legend
+legend('topright',c("Health Satisfaction"),fill=c("0","8"))
+```
+
+(18)barplot of variable "DOCTOR"
+```{r}
+## Simple bar plot
+counts<-table(DOCTOR)
+barplot(counts,main="DOCTOR",xlab="Dummy Variable",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","DOCVIS > 0"),fill=c("0","8"))
+```
+
+(19)barplot of variable "HOSPITAL"
+```{r}
+## Simple bar plot
+counts<-table(HOSPITAL)
+barplot(counts,main="HOSPITAL",xlab="Dummy Variable",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","HOSPVIS > 0"),fill=c("0","8"))
+```
+
+(20)barplot of variable "HEALTHY"
+```{r}
+## Simple bar plot
+counts<-table(HEALTHY)
+barplot(counts,main="HEALTHY",xlab="Healthy condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Healthy"),fill=c("0","8"))
+```
+
+(21)barplot of variable "PUBLIC"
+```{r}
+## Simple bar plot
+counts<-table(PUBLIC)
+barplot(counts,main="PUBLIC",xlab="Insured condition in public health insurance",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Insured in public health insurance"),fill=c("0","8"))
+```
+
+(22)barplot of variable "ADDON"
+```{r}
+## Simple bar plot
+counts<-table(ADDON)
+barplot(counts,main="ADDON",xlab= "add-on insurance condition",col=c("0","8"))
+
+## Add a legend
+legend('topright',c("Otherwise","Insured by add-on insurance"),fill=c("0","8"))
+```
+
+(c)Linear Regression Model
+```{r}
+##Conduct linear regression model that includes all the varibales
+LRM <- lm(DOCVIS~ID+FEMALE+YEAR+AGE+HANDDUM+ALC+FAMHIST+HANDPER+HHKIDS+EDUC+MARRIED+HAUPTS+REALS+FACHHS+ABITUR+UNIV+WORKING+BLUEC+WHITEC+SELF+BEAMT+HOSPVIS+UNEMPLOY+PUBLIC+ADDON+NUMOBS+DOCTOR+HEALTHY+YEAR1984+YEAR1985+YEAR1986+YEAR1987+YEAR1988+YEAR1991+YEAR1994+LOGINC+HOSPITAL+HHNINC+NEWHSAT+PRESCRIP)
+summary(LRM)
+```
+

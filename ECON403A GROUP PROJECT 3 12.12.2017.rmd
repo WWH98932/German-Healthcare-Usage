@@ -1,0 +1,2748 @@
+---
+title: "ECON403A PROJECT 3"
+author: "Ziwen Gu, Yining Quan, Mohammed Ibraaz Syed, Minxuan Wang"
+date: "December 11, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(warn = -1)
+library('XML')
+library('RCurl')
+library('plyr')
+library(Quandl)
+library("quantmod")
+require("financeR")
+require("xts")
+library('tseries')
+library("fImport")
+library(fOptions)
+library(nlstools)
+library(tseries)
+library(Quandl)
+library(zoo)
+library(PerformanceAnalytics)
+library(quantmod)
+library(car)
+#library(FinTS)
+library(fOptions)
+library(forecast)
+require(stats)
+#library(stockPortfolio)
+library(vars)
+library(tseries, quietly = T)
+library(forecast, quietly = T)
+library(XML)
+library(fBasics)
+library(timsac)
+library(TTR)
+library(lattice)
+library(foreign)
+library(MASS)
+require(stats4)
+library(KernSmooth)
+library(fastICA)
+library(cluster)
+library(leaps)
+library(mgcv)
+library(rpart)
+require("datasets")
+require(graphics)
+library(RColorBrewer)
+library(plotrix)
+library(strucchange)
+require("financeR")
+require("xts")
+library(ggplot2)
+library(plyr)
+library(plotrix)
+library(car)
+library(scatterplot3d)
+library(rgl)
+library(Rcmdr)
+library(plot3D)
+library(lattice)
+library(foreign)
+library(MASS)
+library(car)
+require(stats)
+require(stats4)
+library(KernSmooth)
+library(fastICA)
+library(cluster)
+library(leaps)
+library(mgcv)
+library(rpart)
+library(pan)
+library(mgcv)
+library(DAAG)
+library(TTR)
+library(tis)
+require("datasets")
+require(graphics)
+library(forecast)
+#install.packages("astsa")
+#require(astsa)
+library(xtable)
+# New libraries added:
+library(stats)
+library(TSA)
+library(timeSeries)
+#library(fUnitRoots)
+library(fBasics)
+library(tseries)
+library(timsac)
+library(TTR)
+library(fpp)
+library(strucchange)
+library(fPortfolio)
+library(data.table)
+library(scales)
+library(ggplot2)
+require(quadprog)
+library(PortfolioAnalytics)
+library(fitdistrplus)
+library(AER)
+library(texreg)
+library("dynlm")
+library(aod)
+library(foreign)
+library(multcomp)
+library(sandwich)
+library(stargazer)
+library(L1pack)
+library(readxl)
+library(mice)
+library(VIM)
+library(msm)
+library(Hmisc)
+library(psych)
+library("lmtest")
+library(leaps)
+library(viridis)
+library(oaxaca)
+```
+
+#### **GROUP MEMBERS:** Ziwen Gu, Yining Quan, Mohammed Ibraaz Syed, Minxuan Wang
+
+###### Setting working directory:
+```{r}
+setwd("C:/Users/Ibraaz/Desktop/ECON403A HW FOLDER/")
+```
+
+###### Getting data
+```{r}
+Pr3datafile <- "german_healthcare_usage.csv"
+Pr3 <- read.csv(Pr3datafile)
+```
+
+###### The following are the names of the variables:
+```{r}
+names(Pr3)
+```
+
+###### We first observe that the variable **NUMOBS** indicates how many observations there are for each person.
+###### We also note that we are informed in the Data Description section to ignore the variables **TI** and **INCOME**. We observe that **INCOME** is not a variable in the provided dataset.
+###### The Data Description section also notes that the variable **HSAT** has 40 coding errors and that the variable **NEWHSAT** fixes them. \pagebreak
+
+## I. Exploratory Analysis
+
+###### Exploring the dataset
+```{r}
+describe(Pr3, skew = FALSE)
+```
+\pagebreak
+
+###### Looking for any missing values:
+```{r}
+summary(Pr3)[7,]
+```
+###### We note the existence of missing values in our dataset. We explore the pervasiveness of missing values:
+```{r}
+aggr_plot <- aggr(Pr3, col=c('navyblue','red'),
+             numbers=TRUE, sortVars=TRUE, labels = names(Pr3),
+             cex.axis=.7, gap=3, ylab=c("Histogram of missing data", "Pattern"))
+```
+
+###### Looking at what percent of data has missing values:
+```{r}
+NAvalues <- summary(aggr_plot)
+def <- data.frame(NAvalues$combinations$Count, NAvalues$combinations$Percent)
+```
+###### Around 99.89% of the data does not have missing values so we make the decision to only work with the data that have no missing values.
+
+\pagebreak
+
+###### Removing data with missing values from working dataset to form new dataet:
+```{r}
+Pr3c <- Pr3[complete.cases(Pr3),]
+```
+
+###### Missing Values Original Dataset:
+```{r}
+sum(is.na(Pr3))
+```
+
+###### Missing Values in Dataset After Removing Missing Values:
+```{r}
+sum(is.na(Pr3c))
+```
+
+###### We confirm that there are no longer any missing values in the data and thus we can proceed.
+
+\pagebreak
+
+#### Part I (a)
+
+###### Note from page 2 that the quantitative variables are YEAR, AGE, ALC, HANDPER, EDUC, DOCVIS, HOSPVIS, NUMOBS, HSAT, LOGINC, HHNINC, NEWHSAT, and PRESCRIP.
+###### Note that we will include **YEAR**, **NUMOBS**, and **ID** as they do happen to quantitative variables.
+###### Note also that we will *not include* the variable **HSAT** as the Data Description tells us that **NEWHSAT** is the same as **HSAT** - just with the 40 coding errors fixed.
+
+###### We will proceed by first plotting the following variables:
+* AGE
+* ALC
+* HANDPER
+* EDUC
+* DOCVIS
+* HOSPVIS
+* LOGINC
+* HHNINC
+* NEWHSAT
+* PRESCRIP
+
+###### We will then plot the last two variables:
+* YEAR
+* NUMOBS
+* ID
+
+\pagebreak
+
+###### **Histogram and Density Curve for AGE**
+
+###### Histogram
+```{r fig.height= 7}
+hist(Pr3c$AGE, xlab= "Age in Years", ylab= "Count", main= "Histogram of Age")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$AGE,col="gainsboro", ylab="Frequency", xlab="Age in Years",
+         main="Histogram and Density Curve of Age")
+lines(density(Pr3c$AGE), lwd=2,col="firebrick1")
+legend('topright', c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$AGE, boot = 1000)
+```
+###### It appears that this is very likely to be a uniform distribution.
+###### We will test for a uniform distribution. We will also test for a normal distribution as logic tells us that the age distribution of 7293 individuals should realistically follow a normal distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing for a uniform distribution
+```{r}
+AGEunif <- fitdist(Pr3c$AGE, "unif")
+```
+
+###### Testing for a normal distribution
+```{r}
+AGEnorm <- fitdist(Pr3c$AGE, "norm")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("Uniform", "Normal")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(AGEunif, AGEnorm), legendtext = plot.legend)
+```
+
+###### Observe that the uniform distribution seems to be the best fit based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 6}
+cdfcomp(list(AGEunif, AGEnorm), legendtext = plot.legend)
+```
+
+###### Observe that the uniform distribution appears much more appropriate than the normal distribution.
+
+\pagebreak
+
+```{r fig.height= 6}
+qqcomp(list(AGEunif, AGEnorm), legendtext = plot.legend)
+```
+
+###### As far as the empirical quantiles compared to the theoretical quantiles, the uniform distribution is much better than the normal distribution - which according to the Q-Q plot is not appropriate at all for ages less than around 20 and greater than around 60.
+
+\pagebreak
+
+```{r fig.height= 6}
+ppcomp(list(AGEunif, AGEnorm), legendtext = plot.legend)
+```
+
+###### The P-P plot looks very similar to the CDF plot and confirms that the uniform distribution is better than the normal distribution.
+
+\pagebreak
+
+###### **Conclusion about AGE**
+###### We conclude that the AGE variable is best approximated by a uniform distribution. This is a highly unusual finding.
+###### We examine a plot of the variable to confirm our conclusion:
+```{r}
+plot(Pr3c$AGE)
+```
+
+###### It does indeed appear that AGE follows a relatively uniform distribution.
+
+\pagebreak
+
+###### **Histogram and Density Curve for ALC**
+
+###### Histogram
+```{r fig.height= 7}
+hist(Pr3c$ALC, xlab= "Average Alcohol Consumption in the Last 3 Months",
+     ylab= "Count", main= "Histogram of Average Alcohol Consumption")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$ALC,col="gainsboro", ylab="Frequency",
+         xlab= "Average Alcohol Consumption in the Last 3 Months",
+         main= "Histogram of Average Alcohol Consumption", ylim = c(0,0.03))
+lines(density((Pr3c$ALC)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$ALC, boot = 1000)
+```
+
+###### It appears that this is very likely to be a uniform distribution.
+###### We will test for a uniform distribution. We will also test for a normal distribution as logic tells us that the alcohol consumption distribution of 7293 individuals should realistically follow a normal distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing for a uniform distribution
+```{r}
+ALCunif <- fitdist(Pr3c$ALC, "unif")
+```
+
+###### Testing for a normal distribution
+```{r}
+ALCnorm <- fitdist(Pr3c$ALC, "norm")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("Uniform", "Normal")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(ALCunif, ALCnorm), legendtext = plot.legend)
+```
+
+###### Observe that the uniform distribution seems to be the best fit based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 6}
+cdfcomp(list(ALCunif, ALCnorm), legendtext = plot.legend)
+```
+
+###### Observe that the uniform distribution appears to be the best distribution.
+
+\pagebreak
+
+```{r  fig.height= 6}
+qqcomp(list(ALCunif, ALCnorm), legendtext = plot.legend)
+```
+
+###### As far as the empirical quantiles compared to the theoretical quantiles, the uniform distribution is much better than the normal distribution - which according to the Q-Q plot is not appropriate at all. In fact, the normal distribution makes no sense based on the Q-Q plot.
+
+\pagebreak
+
+```{r  fig.height= 6}
+ppcomp(list(ALCunif, ALCnorm), legendtext = plot.legend)
+```
+
+###### The P-P plot confirms our conclusion from the Q-Q plot.
+
+\pagebreak
+
+###### **Conclusion about ALC**
+###### We conclude that the ALC variable is best approximated by a uniform distribution. This is a highly unusual finding as one would expect the alcohol consumption of individuals to look approximate a normal distribution.
+###### We examine a plot of the variable to confirm our conclusion:
+```{r}
+plot(Pr3c$ALC)
+```
+
+###### It does indeed appear that our data for ALC follows a uniform distribution.
+
+\pagebreak
+
+###### **Histogram and Density Curve for HANDPER**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$HANDPER, xlab= "Degree of Handicap in Percent", ylab= "Count",
+     main= "Histogram of Degree of Handicap")
+```
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$HANDPER,col="gainsboro", ylab="Frequency",
+         xlab= "Degree of Handicap in Percent",
+         main= "Histogram of Degree of Handicap")
+lines(density((Pr3c$HANDPER)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$HANDPER, boot = 1000)
+```
+
+###### Observe that normal, uniform, and logistic distributions have to have the square of skewness equal to 0.
+###### Thus the HANDPER data does not fit any one of those distributions.
+###### Also, observe that the exponential distribution has to have a square of skewness value equal to 4.
+###### Since the data for HANDPER has a square of skewness equal to 10, the best distribution is very unlikely to be exponential.
+###### Also observe that a lognormal distribution can not have any values equal to zero so that is also not a possibility.
+###### We will attempt to fit various gamma distributions.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for gamma distribution
+```{r}
+HANDPERgamma1 <- fitdist(Pr3c$HANDPER, distr = "gamma", method = "mme")
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HANDPERgamma2 <- fitdist(Pr3c$HANDPER, distr = "gamma", method = "mle",
+                         lower = c(0, 0), start = list(scale = 1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HANDPERgamma3 <- fitdist(Pr3c$HANDPER, distr = "gamma", method = "mle",
+                         lower = c(0, 0), start = list(scale = 0.5, shape = 1))
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("gamma1", "gamma2", "gamma3")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(HANDPERgamma1, HANDPERgamma2, HANDPERgamma3),
+         legendtext = plot.legend, ylim = 0.13)
+```
+
+###### Observe that the gamma distributions do appear to be the best fits based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(HANDPERgamma1, HANDPERgamma2, HANDPERgamma3),
+        legendtext = plot.legend)
+```
+
+###### The gamma distributions do appear to be appropriate approximations.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(HANDPERgamma1, HANDPERgamma2, HANDPERgamma3), legendtext = plot.legend)
+```
+
+###### The Q-Q plot appears to contradict our previous conclusion about the gamma distribution being a good fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(HANDPERgamma1, HANDPERgamma2, HANDPERgamma3), legendtext = plot.legend)
+```
+
+###### The P-P plot supports our conclusion from the Q-Q plot, and contradicts our conclusion from the density and cumulative distribution function plots.
+
+\pagebreak
+
+###### **Conclusion about HANDPER**
+###### We conclude that the HANDPER variable is best approximated by a gamma distribution, given that basically all other distributions we would attempt based on the Cullen and Frey graph do not appear to be good fits and the empirical vs. theoretical CDF plot as well as the Q-Q plot indicate that the two distributions are quite similar.
+
+\pagebreak
+
+###### **Histogram and Density Curve for EDUC**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$EDUC, xlab= "Years of Schooling", ylab= "Count",
+     main= "Histogram of Education")
+```
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$EDUC,col="gainsboro", ylab="Frequency",
+         xlab= "Years of Schooling", main= "Histogram of Education")
+lines(density((Pr3c$EDUC)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$EDUC, boot = 1000)
+```
+
+###### Observe that gamma, lognormal, and weibull distributions are possibilities.
+###### Note that normal, uniform, and logistic distributions have to have the square of skewness equal to 0, so EDUC is unlikely to fit any of those distributions.
+###### Also, observe that the exponential distribution has to have a square of skewness value equal to 4.
+###### Since the data for EDUC has a square of skewness less than 3, the best distribution is very unlikely to be exponential, but we will attempt to test that fit as well.
+###### We will attempt to fit various gamma distributions, a lognormal distribution, a weibull distribution, and an exponential distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for gamma distribution
+```{r}
+EDUCgamma1 <- fitdist(Pr3c$EDUC, distr = "gamma", method = "mle",
+                      lower = c(0, 0), start = list(scale = 1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+EDUCgamma2 <- fitdist(Pr3c$EDUC, distr = "gamma", method = "mle",
+                      lower = c(0, 0), start = list(scale = 9, shape = 2))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+EDUCgamma3 <- fitdist(Pr3c$EDUC, distr = "gamma", method = "mle",
+                      lower = c(0, 0), start = list(scale = 0.5, shape = 1))
+```
+
+###### Testing fit for a lognormal distribution
+```{r}
+EDUClnorm <- fitdist(Pr3c$EDUC, "lnorm")
+```
+
+###### Testing fit for a weibull distribution
+```{r}
+EDUCweibull <- fitdist(Pr3c$EDUC, "weibull")
+```
+
+###### Testing for an exponential distribution
+```{r}
+EDUCexp <- fitdist(Pr3c$EDUC, "exp")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("gamma1", "gamma2", "gamma3", "lnorm", "weibull", "exponential")
+```
+
+###### We compare the histogram with the theoretical densities on the following page.
+
+\pagebreak
+
+```{r  fig.height= 7}
+denscomp(list(EDUCgamma1, EDUCgamma2, EDUCgamma3, EDUClnorm, EDUCweibull,
+              EDUCexp), legendtext = plot.legend)
+```
+
+###### Observe that the lognormal distribution and gamma distribution with scale = 0.5, shape = 1 appear to be the best fits based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(EDUCgamma1, EDUCgamma2, EDUCgamma3, EDUClnorm, EDUCweibull,
+             EDUCexp), legendtext = plot.legend)
+```
+
+###### Again, the lognormal distribution and gamma distribution with scale = 0.5, shape = 1 appear to be the best fits.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(EDUCgamma1, EDUCgamma2, EDUCgamma3, EDUClnorm, EDUCweibull,
+            EDUCexp), legendtext = plot.legend)
+```
+
+###### The Q-Q plot shows that the exponential distribution is a particularly bad fit. Also, it shows the lognormal distribution, gamma distribution with scale = 0.5, shape = 1, and the weibull distribution being good fits.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(EDUCgamma1, EDUCgamma2, EDUCgamma3, EDUClnorm, EDUCweibull,
+            EDUCexp), legendtext = plot.legend)
+
+```
+
+###### The P-P plot shows the lognormal distribution being a particular good fit compared to the others.
+
+\pagebreak
+
+###### Due to some ambiguity, we analyze goodness-of-fit statistics for each of the fitted distributions
+```{r}
+gofstat(list(EDUCgamma1, EDUCgamma2, EDUCgamma3, EDUClnorm, EDUCweibull,
+             EDUCexp),fitnames=c("gamma1", "gamma2", "gamma3", "lnorm",
+                                 "weibull", "exponential"))
+```
+
+###### The goodness-of-fit statistics overwhelmingly support the lognormal distribution as being the best fitted distribution.
+
+###### **Conclusion about EDUC**
+###### We conclude that the EDUC variable is best approximated by a lognormal distribution.
+
+\pagebreak
+
+###### **Histogram and Density Curve for DOCVIS**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$DOCVIS, xlab= "Number of Doctor Visits in Last Three Months",
+     ylab= "Count", main= "Histogram of Number of Doctor Visits")
+```
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$DOCVIS,col="gainsboro", ylab="Frequency",
+         xlab= "Number of Doctor Visits in Last Three Months",
+         main= "Histogram of Number of Doctor Visits")
+lines(density((Pr3c$DOCVIS)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$DOCVIS, boot = 1000)
+```
+
+###### Observe that gamma distributions are possibilities. Due to values of zero, a lognormal distribution is not possible.
+###### We will attempt to fit various gamma distributions.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for gamma distribution
+```{r}
+DOCVISgamma <- fitdist(Pr3c$DOCVIS, distr = "gamma", method = "mme")
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+DOCVISgamma1 <- fitdist(Pr3c$DOCVIS, distr = "gamma", method = "mle",
+                        lower = c(0, 0), start = list(scale = 1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+DOCVISgamma2 <- fitdist(Pr3c$DOCVIS, distr = "gamma", method = "mle",
+                        lower = c(0, 0), start = list(scale = 0.5, shape = 1))
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("gamma", "gamma1", "gamma2")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(DOCVISgamma, DOCVISgamma1, DOCVISgamma2),
+         legendtext = plot.legend, ylim = 0.11, xlim = c(-1, 12))
+```
+
+###### Observe that it is difficult to reach a conclusion from this plot.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(DOCVISgamma, DOCVISgamma1, DOCVISgamma2), legendtext = plot.legend)
+```
+
+###### The gamma distributions appear to be good fits.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(DOCVISgamma, DOCVISgamma1, DOCVISgamma2), legendtext = plot.legend)
+```
+
+###### The Q-Q plot shows that one of the gamma distributions is a better fit than the others.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(DOCVISgamma, DOCVISgamma1, DOCVISgamma2), legendtext = plot.legend)
+```
+
+###### The P-P plot shows that again one of the gamma distributions is a better fit than the others.
+
+\pagebreak
+
+###### **Conclusion about DOCVIS**
+###### We conclude that the DOCVIS variable is best approximated by a gamma distribution.
+
+\pagebreak
+
+###### **Histogram and Density Curve for HOSPVIS**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$HOSPVIS, xlab= "Number of Hospital Visits in Last Calendar Year",
+     ylab= "Count", main= "Histogram of Hospital Visits")
+```
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$HOSPVIS,col="gainsboro", ylab="Frequency",
+         xlab= "Number of Hospital Visits in Last Calendar Year",
+         main= "Histogram of Hospital Visits")
+lines(density((Pr3c$HOSPVIS)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$HOSPVIS, boot = 1000)
+```
+
+###### Observe that gamma distributions are the likeliest possibilities.
+###### Note that due to so many values being equal to zero based on the histogram, there is a possibility that a uniform distribution may be a good fit.
+###### Note that a beta distribution does not make sense as the range of the values in the data is [0,51] and the data is based on the number of hospital visits and not on a probability.
+###### We will attempt to fit various gamma distributions and a uniform distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for gamma distribution
+```{r}
+HOSPVISgamma <- fitdist(Pr3c$HOSPVIS, distr = "gamma", method = "mme")
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HOSPVISgamma1 <- fitdist(Pr3c$HOSPVIS, distr = "gamma", method = "mle",
+                         lower = c(0, 0), start = list(scale = 1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HOSPVISgamma2 <- fitdist(Pr3c$HOSPVIS, distr = "gamma", method = "mle",
+                         lower = c(0, 0), start = list(scale = 0.1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HOSPVISgamma3 <- fitdist(Pr3c$HOSPVIS, distr = "gamma", method = "mle",
+                         lower = c(0, 0), start = list(scale = 0.5, shape = 1))
+```
+
+###### Testing fit for uniform distribution
+```{r}
+HOSPVISunif <- fitdist(Pr3c$HOSPVIS, distr = "unif")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("gamma", "gamma1", "gamma2", "gamma3", "uniform")
+```
+
+###### We compare the histogram with the theoretical densities on the following page.
+
+\pagebreak
+
+```{r fig.height= 7}
+denscomp(list(HOSPVISgamma, HOSPVISgamma1, HOSPVISgamma2, HOSPVISgamma3,
+              HOSPVISunif), legendtext = plot.legend, ylim = 0.2)
+```
+
+###### Observe that the graph does not tell us much.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(HOSPVISgamma, HOSPVISgamma1, HOSPVISgamma2,
+             HOSPVISgamma3, HOSPVISunif), legendtext = plot.legend)
+```
+
+###### Observe that the gamma distributions do indeed appear to be good fits. The uniform distribution looks like a terrible fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(HOSPVISgamma, HOSPVISgamma1, HOSPVISgamma2, HOSPVISgamma3,
+            HOSPVISunif), legendtext = plot.legend)
+```
+
+###### The Q-Q plot contradicts our previous conclusion and shows that three of the four gamma distributions are not good fits.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(HOSPVISgamma, HOSPVISgamma1, HOSPVISgamma2, HOSPVISgamma3,
+            HOSPVISunif), legendtext = plot.legend)
+```
+
+###### The P-P plot shows that none of the gamma distributions are good fits.
+
+\pagebreak
+
+###### **Conclusion about HOSPVIS**
+###### We conclude that the HOSPVIS variable is best approximated by a gamma distribution, based mainly on the CUllen and Frey graph and the comparison of empirical vs. theoretical CDFs.
+
+\pagebreak
+
+###### **Histogram and Density Curve for LOGINC**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$LOGINC,
+     xlab= "Natural log (ln) of household nominal monthly net income
+     in German marks / 10000", ylab= "Count",
+     main= "Histogram of ln of Household Nominal Monthly Net Income")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$LOGINC,col="gainsboro", ylab="Frequency",
+         xlab= "Natural log (ln) of household nominal monthly net income
+         in German marks / 10000",
+         main= "Histogram of ln of Household Nominal Monthly Net Income")
+lines(density((Pr3c$LOGINC)), lwd=2,col="firebrick1")
+legend("topleft", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$LOGINC, boot = 1000)
+```
+
+###### Observe that a logistic distribution may be a good fit. We will also attempt to fit a normal distribution, based on the shape of the density curve. A lognormal distribution does not make sense as the data has negative values.
+###### We will attempt to fit a logistic distribution, a lognormal distribution, and a normal distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for a logistic distribution
+```{r}
+LOGINClogis <- fitdist(Pr3c$LOGINC, "logis")
+```
+
+###### Testing for a normal distribution
+```{r}
+LOGINCnorm <- fitdist(Pr3c$LOGINC, "norm")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("logis", "norm")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(LOGINClogis, LOGINCnorm), legendtext = plot.legend)
+```
+
+###### Observe that the normal distribution seems to be the best fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(LOGINClogis, LOGINCnorm), legendtext = plot.legend)
+```
+
+###### It is difficult to interpret the empirical vs. theoretical CDFs.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(LOGINClogis, LOGINCnorm), legendtext = plot.legend)
+```
+
+###### The Q-Q plot shows that different distributions may be better fits for different sections of the dataset.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(LOGINClogis, LOGINCnorm), legendtext = plot.legend)
+```
+
+###### The P-P plot shows that both distributions are relatively good fits.
+
+\pagebreak
+
+###### Due to some ambiguity, we analyze goodness-of-fit statistics for each of the fitted distributions
+```{r}
+gofstat(list(LOGINClogis, LOGINCnorm),fitnames=c("logis", "norm"))
+```
+
+###### The goodness-of-fit statistics support the logistic distribution as being the best fitted distribution.
+
+###### **Conclusion about LOGINC**
+###### We conclude that the LOGINC variable is best approximated by a lognormal distribution.
+
+\pagebreak
+
+###### **Histogram and Density Curve for HHNINC**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$HHNINC, xlab= "Household Nominal Monthly Net Income
+     in German Marks / 10000", ylab= "Count",
+     main= "Histogram of Household Nominal Monthly Net Income")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$HHNINC,col="gainsboro", ylab="Frequency",
+         xlab= "Household Nominal Monthly Net Income
+         in German Marks / 10000",
+         main= "Histogram of Household Nominal Monthly Net Income")
+lines(density((Pr3c$HHNINC)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$HHNINC, boot = 1000)
+```
+
+###### Observe that gamma, lognormal, and weibull distributions are possibilities.
+###### Also, observe that the exponential distribution has to have a square of skewness value equal to 4, so the best distribution is unlikely to be exponential, but we will attempt to test that fit as well.
+###### We will attempt to fit various gamma distributions, a lognormal distribution, a weibull distribution, and an exponential distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for gamma distribution
+```{r}
+HHNINCgamma <- fitdist(Pr3c$HHNINC, distr = "gamma", method = "mme")
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HHNINCgamma1 <- fitdist(Pr3c$HHNINC, distr = "gamma", method = "mle",
+                        lower = c(0, 0), start = list(scale = 1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HHNINCgamma2 <- fitdist(Pr3c$HHNINC, distr = "gamma", method = "mle",
+                        lower = c(0, 0), start = list(scale = 9, shape = 2))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+HHNINCgamma3 <- fitdist(Pr3c$HHNINC, distr = "gamma", method = "mle",
+                        lower = c(0, 0), start = list(scale = 0.5, shape = 1))
+```
+
+###### Testing fit for a lognormal distribution
+```{r}
+HHNINClnorm <- fitdist(Pr3c$HHNINC, "lnorm")
+```
+
+###### Testing fit for a weibull distribution
+```{r}
+HHNINCweibull <- fitdist(Pr3c$HHNINC, "weibull")
+```
+
+###### Testing for an exponential distribution
+```{r}
+HHNINCexp <- fitdist(Pr3c$HHNINC, "exp")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("gamma", "gamma1", "gamma2", "gamma3", "lnorm", "weibull", "exponential")
+```
+
+###### We compare the histogram with the theoretical densities on the following page.
+
+\pagebreak
+
+```{r fig.height= 7}
+denscomp(list(HHNINCgamma, HHNINCgamma1, HHNINCgamma2, HHNINCgamma3,
+              HHNINClnorm, HHNINCweibull, HHNINCexp), legendtext = plot.legend)
+```
+
+###### Observe that the lognormal and gamma distributions appear to be the best fits based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(HHNINCgamma, HHNINCgamma1, HHNINCgamma2, HHNINCgamma3,
+             HHNINClnorm, HHNINCweibull, HHNINCexp), legendtext = plot.legend)
+```
+
+###### Most of the distributions appear to be relatively good fits, except for the exponential distribution.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(HHNINCgamma, HHNINCgamma1, HHNINCgamma2, HHNINCgamma3,
+            HHNINClnorm, HHNINCweibull, HHNINCexp), legendtext = plot.legend)
+```
+
+###### The Q-Q plot shows that the exponential distribution is a particularly bad fit. Also, it shows the lognormal distribution is the best fit of the distributions attempted.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(HHNINCgamma, HHNINCgamma1, HHNINCgamma2, HHNINCgamma3,
+            HHNINClnorm, HHNINCweibull, HHNINCexp), legendtext = plot.legend)
+```
+
+###### Most of the distributions appear to be relatively good fits, except for the exponential distribution.
+
+\pagebreak
+
+###### Due to some ambiguity, we analyze goodness-of-fit statistics for each of the fitted distributions
+```{r}
+gofstat(list(HHNINCgamma, HHNINCgamma1, HHNINCgamma2, HHNINCgamma3,
+             HHNINClnorm, HHNINCweibull, HHNINCexp),
+             fitnames=c("gamma", "gamma1", "gamma2", "gamma3",
+                        "lnorm", "weibull", "exponential"))
+```
+
+###### The goodness-of-fit statistics suggest that the gamma distribution with scale = 1 and shape = 1 is the best fitted distribution.
+
+###### **Conclusion about HHNINC**
+###### We conclude that the HHNINC variable is best approximated by a gamma distribution, particularly one with scale = 1 and shape = 1.
+
+\pagebreak
+
+###### **Histogram and Density Curve for NEWHSAT**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$NEWHSAT, xlab= "Health Satisfaction, from 0 (low) - 10 (high)",
+     ylab= "Count", main= "Histogram of Health Satisfaction")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$NEWHSAT,col="gainsboro", ylab="Frequency",
+         xlab= "Health Satisfaction, from 0 (low) - 10 (high)",
+         main= "Histogram of Health Satisfaction")
+lines(density((Pr3c$NEWHSAT)), lwd=2,col="firebrick1")
+legend("topleft", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$NEWHSAT, boot = 1000)
+```
+
+###### Observe that gamma distributions are possibilities.
+###### Note that normal distribution is also a possibility as the sample itself and most of the bootstrapped samples have a kurtosis very close to that of a normal distribution.
+###### Note that a beta distribution has to have a value between [0,1] whereas our data has values between [0,10].
+###### Also, the lognormal distribution does not make sense as we do not have all positive values in our dataset.
+###### We will attempt to fit various gamma distributions and a normal distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for gamma distribution
+```{r}
+NEWHSATgamma <- fitdist(Pr3c$NEWHSAT, distr = "gamma", method = "mme")
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+NEWHSATgamma1 <- fitdist(Pr3c$NEWHSAT, distr = "gamma", method = "mle",
+                         lower = c(0, 0), start = list(scale = 1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+NEWHSATgamma2 <- fitdist(Pr3c$NEWHSAT, distr = "gamma", method = "mle",
+                         lower = c(0, 0), start = list(scale = 0.5, shape = 1))
+```
+
+###### Testing for a normal distribution
+```{r}
+NEWHSATnorm <- fitdist(Pr3c$NEWHSAT, "norm")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("gamma", "gamma1", "gamma2", "norm")
+```
+
+###### We compare the histogram with the theoretical densities on the following page.
+
+\pagebreak
+
+```{r fig.height= 7}
+denscomp(list(NEWHSATgamma, NEWHSATgamma1, NEWHSATgamma2, NEWHSATnorm),
+         legendtext = plot.legend)
+```
+
+###### Observe that the normal distribution and gamma distribution fitted by matching moments appear to be the best fits based on the theoretical densities of the distributions.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(NEWHSATgamma, NEWHSATgamma1, NEWHSATgamma2, NEWHSATnorm),
+        legendtext = plot.legend)
+```
+
+###### The same distributions as before appear to be the best fits.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(NEWHSATgamma, NEWHSATgamma1, NEWHSATgamma2, NEWHSATnorm),
+       legendtext = plot.legend)
+```
+
+###### The Q-Q plot basically agrees with the empirical vs. theoretical CDF plot.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(NEWHSATgamma, NEWHSATgamma1, NEWHSATgamma2, NEWHSATnorm),
+       legendtext = plot.legend)
+
+```
+
+###### The P-P plot shows again that the normal distribution and gamma distribution fitted by matching moments appear to be the best fits.
+
+\pagebreak
+
+###### Due to some ambiguity, we analyze goodness-of-fit statistics for each of the fitted distributions
+```{r}
+gofstat(list(NEWHSATgamma, NEWHSATgamma1, NEWHSATgamma2,
+             NEWHSATnorm),fitnames=c("gamma", "gamma1", "gamma2", "norm"))
+```
+
+###### The goodness-of-fit statistics suggest that the normal distribution is the best fitted distribution.
+
+###### **Conclusion about NEWHSAT**
+###### We conclude that the NEWHSAT variable is best approximated by a normal distribution.
+
+\pagebreak
+
+###### **Histogram and Density Curve for PRESCRIP**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$PRESCRIP, xlab= "Number of Prescriptions in Last Three Months",
+     ylab= "Count", main= "Histogram of Number of Prescriptions")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$PRESCRIP,col="gainsboro", ylab="Frequency",
+         xlab= "Number of Prescriptions in Last Three Months",
+         main= "Histogram of Number of Prescriptions")
+lines(density((Pr3c$PRESCRIP)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$PRESCRIP, boot = 1000)
+```
+
+###### Observe that gamma distributions are possibilities.
+###### Note that because of the range of values in the dataset, a lognormal distribution does not make sense.
+###### We will attempt to fit various gamma distributions.
+
+###### **Testing fits for distributions**
+
+###### Testing fit for a gamma distribution
+```{r}
+PRESCRIPgamma <- fitdist(Pr3c$PRESCRIP, "gamma", method = "mme")
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+PRESCRIPgamma1 <- fitdist(Pr3c$PRESCRIP, distr = "gamma", method = "mle",
+                          lower = c(0, 0), start = list(scale = 1, shape = 1))
+```
+
+###### Testing fit for gamma distribution with different parameters
+```{r}
+PRESCRIPgamma2 <- fitdist(Pr3c$PRESCRIP, distr = "gamma", method = "mle",
+                          lower = c(0, 0), start = list(scale = 0.5, shape = 1))
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("gamma", "gamma1", "gamma2")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(PRESCRIPgamma, PRESCRIPgamma1, PRESCRIPgamma2),
+         legendtext = plot.legend, ylim = .15)
+```
+
+###### Observe that the plot does not tell us much except that all three distribution are relatively in the correct range.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(PRESCRIPgamma, PRESCRIPgamma1, PRESCRIPgamma2),
+        legendtext = plot.legend)
+```
+
+###### Again, all three distributions appear to be good fits.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(PRESCRIPgamma, PRESCRIPgamma1, PRESCRIPgamma2),
+       legendtext = plot.legend)
+```
+
+###### The Q-Q plot shows that the moment matched gamma distribution is the better fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(PRESCRIPgamma, PRESCRIPgamma1, PRESCRIPgamma2),
+       legendtext = plot.legend)
+```
+
+###### The P-P plot shows that all the distributions appear to be good fits.
+
+\pagebreak
+
+###### **Conclusion about PRESCRIP**
+###### We conclude that the PRESCRIP variable is best approximated by a gamma distribution. A primary reason for this is that a lot of other distributions did not make sense based on the Cullen and Frey graph and also based on the range of values of the dataset.
+
+\pagebreak
+
+###### **Histogram and Density Curve for YEAR**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$YEAR, xlab= "Calendar Year of the Observation", ylab= "Count",
+     main= "Histogram of Observation Calendar Years")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$YEAR,col="gainsboro", ylab="Frequency",
+         xlab= "Calendar Year of the Observation",
+         main= "Histogram of Observation Calendar Years")
+lines(density((Pr3c$YEAR)), lwd=2,col="firebrick1")
+legend("topleft", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$YEAR, boot = 1000)
+```
+
+###### Observe that the normal and uniform distributions are basically the only possibilities, based on both the Cullen and Frey graph and the histogram.
+###### Note that the beta distribution does not make sense due to the range of the values of the dataset not being between [0,1].
+###### We will attempt to fit a normal distribution and a uniform distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for a normal distribution
+```{r}
+YEARnorm <- fitdist(Pr3c$YEAR, "norm")
+```
+
+###### Testing fit for a uniform distribution
+```{r}
+YEARunif <- fitdist(Pr3c$YEAR, "unif")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("norm", "unif")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(YEARnorm, YEARunif), legendtext = plot.legend)
+```
+
+###### Observe that neither distribution is a good fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(YEARnorm, YEARunif), legendtext = plot.legend)
+```
+
+###### The normal distribution appears to be a better fit than the uniform distribution.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(YEARnorm, YEARunif), legendtext = plot.legend)
+```
+
+###### The Q-Q plot does not provide a clear indication of which distribution is a better fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(YEARnorm, YEARunif), legendtext = plot.legend)
+```
+
+###### The P-P plot shows the normal distribution is a marginally better fit.
+
+\pagebreak
+
+###### We analyze goodness-of-fit statistics to get a clearer idea of which distribution is a better approximation, keeping in mind that neither distribution appears to be a particularly good fit to the dataset
+```{r}
+gofstat(list(YEARnorm, YEARunif),fitnames=c("normal", "uniform"))
+```
+
+###### The goodness-of-fit statistics suggest that the normal distribution is the best fitted distribution.
+
+###### Conclusion about YEAR
+###### We conclude that the normal distribution provides the best approximation of the YEAR variable, among the distributions considered through the Cullen and Frey graph.
+
+\pagebreak
+
+###### **Histogram and Density Curve for NUMOBS**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$NUMOBS, xlab= "Number of Observations for Individual",
+     ylab= "Count", main= "Histogram of Number of Observations")
+```
+
+\pagebreak
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$NUMOBS,col="gainsboro", ylab="Frequency",
+         xlab= "Number of Observations for Individual",
+         main= "Histogram of Number of Observations")
+lines(density((Pr3c$NUMOBS)), lwd=2,col="firebrick1")
+legend("topleft", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$NUMOBS, boot = 1000)
+```
+
+###### Observe that the normal and uniform distributions are basically the only possibilities, based on both the Cullen and Frey graph.
+###### Note that the beta distribution does not make sense due to the range of the values of the dataset not being between [0,1].
+###### Also, note that due to the shape of the histogram, gamma and lognormal distributions do not make sense.
+###### We will attempt to fit a normal distribution and a uniform distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for a normal distribution
+```{r}
+NUMOBSnorm <- fitdist(Pr3c$NUMOBS, "norm")
+```
+
+###### Testing fit for a uniform distribution
+```{r}
+NUMOBSunif <- fitdist(Pr3c$NUMOBS, "unif")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("norm", "unif")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r}
+denscomp(list(NUMOBSnorm, NUMOBSunif), legendtext = plot.legend, ylim = c(0,0.6))
+```
+
+###### Observe that neither distribution is a good fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(NUMOBSnorm, NUMOBSunif), legendtext = plot.legend)
+```
+
+###### The normal distribution appears to be a better fit than the uniform distribution.
+
+\pagebreak
+
+```{r fig.height= 7}
+qqcomp(list(NUMOBSnorm, NUMOBSunif), legendtext = plot.legend)
+```
+
+###### The Q-Q plot indicates that the normal distribution is a better fit.
+
+\pagebreak
+
+```{r fig.height= 7}
+ppcomp(list(NUMOBSnorm, NUMOBSunif), legendtext = plot.legend)
+```
+
+###### The P-P plot also indicates that the normal distribution is a better fit.
+
+\pagebreak
+
+###### **Conclusion about NUMOBS**
+###### We conclude that the normal distribution provides the best approximation of the NUMOBS variable, among the distributions considered through the Cullen and Frey graph.
+
+\pagebreak
+
+###### **Histogram and Density Curve for ID**
+
+###### Histogram
+```{r fig.height= 8}
+hist(Pr3c$ID, xlab= "Person - Identification Number", ylab= "Count",
+     main= "Histogram of Person - Identification Number")
+```
+
+###### Histogram and Density Curve
+```{r fig.height= 7}
+truehist(Pr3c$ID,col="gainsboro", ylab="Frequency",
+         xlab= "Person - Identification Number",
+         main= "Histogram of Person - Identification Number", ylim = c(0,0.00020))
+lines(density((Pr3c$ID)), lwd=2,col="firebrick1")
+legend("topright", c("Relative Frequency", "Density Curve"),
+       fill=c("gainsboro", "firebrick1"))
+```
+
+\pagebreak
+
+###### We plot the Cullen and Frey graph to give us an idea of what distributions to try out:
+```{r}
+descdist(Pr3c$ID, boot = 1000)
+```
+
+###### Observe that the uniform distribution is basically the only possibility, based on both the Cullen and Frey graph and the histogram.
+###### We will attempt to fit a uniform distribution.
+
+\pagebreak
+
+###### **Testing fits for distributions**
+
+###### Testing fit for a uniform distribution
+```{r}
+IDunif <- fitdist(Pr3c$ID, "unif")
+```
+
+###### Setting Legend
+```{r}
+plot.legend <- c("unif")
+```
+
+###### Comparing Histogram and Theoretical Densities
+```{r fig.height= 7}
+denscomp(list(IDunif), legendtext = plot.legend)
+```
+
+###### Observe that this is almost certainly a uniform distribution.
+
+\pagebreak
+
+```{r fig.height= 7}
+cdfcomp(list(IDunif), legendtext = plot.legend)
+```
+
+###### The data set is best approximated by a uniform distribution.
+
+\pagebreak
+
+###### **Conclusion about ID**
+###### We conclude that the uniform distribution provides the best approximation of the ID variable.
+
+\pagebreak
+
+#### Part I (b)
+
+###### Note that the categorical variables are:
+* FEMALE
+* HANDDUM
+* FAMHIST
+* HHKIDS
+* MARRIED
+* HAUPTS
+* REALS
+* FACHHS
+* ABITUR
+* UNIV
+* WORKING
+* BLUEC
+* WHITEC
+* SELF
+* BEAMT
+* UNEMPLOY
+* PUBLIC
+* ADDON
+* DOCTOR
+* HOSPITAL
+* HEALTHY
+* YEAR1984
+* YEAR1985
+* YEAR1986
+* YEAR1987
+* YEAR1988
+* YEAR1991
+* YEAR1994
+
+\pagebreak
+
+###### Barplot of variable FEMALE
+```{r}
+counts<-table(Pr3c$FEMALE)
+barplot(counts,main="Barplot of FEMALE variable",
+        xlab="Female vs. Male",
+        col=c("royalblue1","palevioletred1"),
+        ylim=c(0,36000))
+legend('topright', c("Male","Female"),fill=c("royalblue1","palevioletred1"))
+```
+
+###### There appear to be more males in the dataset than females. However, the numbers are not so skewed that they significantly bias the data set.
+
+\pagebreak
+
+###### Barplot of variable HANDDUM
+```{r}
+counts<-table(Pr3c$HANDDUM)
+barplot(counts,main="Barplot of HANDDUM variable",
+        xlab="Handicapped vs. Otherwise",
+        col=c("slateblue","red","red","red","tomato"),
+        ylim=c(0,36000))
+legend('topright',c("Otherwise","Handicapped"),fill=c("slateblue","tomato"))
+```
+
+###### Observe that there are about four more times the individuals who are not handicapped than who are handicapped.
+###### Also note that there are some obvious data errors.
+
+\pagebreak
+
+###### Barplot of variable FAMHIST
+```{r}
+counts<-table(Pr3c$FAMHIST)
+barplot(counts,main="Barplot of FAMHIST variable",
+        xlab="No FAMHIST vs. FAMHIST",
+        col=c("green","red"),
+        ylim = c(0,36000))
+legend('topright', c("No FAMHIST","FAMHIST"),fill=c("green","red"))
+```
+
+###### There are about as many individuals in the dataset with FAMHIST as with no FAMHIST.
+###### Note that there is a likely clerical error in the dataset.
+
+\pagebreak
+
+###### Barplot of variable HHKIDS
+```{r}
+counts<-table(Pr3c$HHKIDS)
+barplot(counts,main="Barplot of HHKIDS variable",
+        xlab="Children Under Age 16 in the Household vs. Otherwise",
+        col=c("wheat","springgreen"),
+        ylim = c(0,36000))
+legend('topright',
+       c("No Children Under Age 16 in the Household",
+         "Children Under Age 16 in the Household"),
+       fill=c("wheat","springgreen"))
+```
+
+###### Observe that there are less individuals who have children in the household than who have no children in the household.
+###### Around 40% of individuals have children in the household and the rest do not.
+
+\pagebreak
+
+###### Barplot of variable MARRIED
+```{r}
+counts<-table(Pr3c$MARRIED) 
+barplot(counts,main="Barplot of MARRIED variable",
+        xlab="Married vs. Otherwise",
+        col=c("mediumpurple","violet"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Married"),
+       fill=c("mediumpurple","violet"))
+```
+
+###### There are substantially more individuals in the dataset who are married than who are not married.
+
+\pagebreak
+
+###### Barplot of variable HAUPTS
+```{r}
+counts<-table(Pr3c$HAUPTS)
+barplot(counts,main="Barplot of HAUPTS variable",
+        xlab="Highest Schooling Degree is Hauptschul Degreevs. Otherwise",
+        col=c("lightblue","indianred"),
+        ylim = c(0,36000))
+legend('topright',
+       c("Otherwise", "Highest Schooling Degree is Hauptschul Degree"),
+       fill=c("lightblue","indianred"))
+```
+
+###### There are substantially more individuals who have the Hauptschul Degree as their highest educational degree than those who do not.
+
+\pagebreak
+
+###### Barplot of variable REALS
+```{r}
+counts<-table(Pr3c$REALS)
+barplot(counts,main="Barplot of REALS variable",
+        xlab="Highest Schooling degree is Realschul Degree vs. Otherwise",
+        col=c("lightblue1","indianred1"),
+        ylim = c(0, 36000))
+legend('topright',
+       c("Otherwise","Highest Schooling degree is Realschul Degree"),
+       fill=c("lightblue1","indianred1"))
+```
+
+###### The vast majority of individuals do not have the Realschul Degree as their highest educational degree.
+
+\pagebreak
+
+###### Barplot of variable FACHHS
+```{r}
+counts<-table(Pr3c$FACHHS)
+barplot(counts,main="Barplot of FACHHS variable",
+        xlab="Highest Schooling degree is Polytechnical Degree vs. Otherwise",
+        col=c("lightblue2","indianred2"),
+        ylim = c(0,36000))
+legend('topright',
+       c("Otherwise","Highest Schooling degree is Polytechnical Degree"),
+       fill=c("lightblue2","indianred2"))
+```
+
+###### A very small percentage of all individuals have a Polytechnical Degree as their highest educational degree.
+
+\pagebreak
+
+###### Barplot of variable ABITUR
+```{r}
+counts<-table(Pr3c$ABITUR)
+barplot(counts,main="Barplot of ABITUR variable",
+        xlab="Highest Schooling degree is Abitur vs. Otherwise",
+        col=c("lightblue3","indianred3"),
+        ylim = c(0,36000))
+legend('topright', c("Otherwise","Highest Schooling degree is Abitur"),
+       fill=c("lightblue3","indianred3"))
+```
+
+###### A small proportion of all individuals have an Abitur Degree as their highest educational degree.
+
+\pagebreak
+
+###### Barplot of variable UNIV
+```{r}
+counts<-table(Pr3c$UNIV)
+barplot(counts,main="Barplot of UNIV variable",
+        xlab="Highest Schooling degree is University Degree vs. Otherwise",
+        col=c("olivedrab1","mediumblue"),
+        ylim = c(0,36000))
+legend('topright', c("Otherwise","Highest Schooling degree is University Degree"),
+       fill=c("olivedrab1","mediumblue"))
+```
+
+###### The vast majority of individuals do not have a University degree as their highest educational degree.
+
+\pagebreak
+
+###### Barplot of variable WORKING
+```{r}
+counts<-table(Pr3c$WORKING)
+barplot(counts,main="Barplot of WORKING variable",
+        xlab="Working vs. Otherwise",
+        col=c("red","purple4"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Working"),
+       fill=c("red","purple4"))
+```
+
+###### The majority of the individuals are employed.
+
+\pagebreak
+
+###### Barplot of variable BLUEC
+```{r}
+counts<-table(Pr3c$BLUEC)
+barplot(counts,main="Barplot of BLUEC variable",
+        xlab="Blue Collar Employee vs. Otherwise",
+        col=c("lightgrey","dodgerblue"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Blue Collar Employee"),
+       fill=c("lightgrey","dodgerblue"))
+```
+
+###### The majority of individuals are not blue collar employees.
+
+\pagebreak
+
+###### Barplot of variable WHITEC
+```{r}
+counts<-table(Pr3c$WHITEC)
+barplot(counts,main="Barplot of WHITEC variable",
+        xlab="White Collar Employee vs. Otherwise",
+        col=c("lightgrey","ghostwhite"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","White Collar Employee"),
+       fill=c("lightgrey","ghostwhite"))
+```
+
+###### The majority of employees are not white collar employees.
+
+\pagebreak
+
+###### Barplot of variable SELF
+```{r}
+counts<-table(Pr3c$SELF)
+barplot(counts,main="Barplot of SELF variable",
+        xlab="Self-Employed vs. Otherwise",
+        col=c("lightgrey","slateblue1"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Self-Employed"),
+       fill=c("lightgrey","slateblue1"))
+```
+
+###### The vast majority of individuals are not self-employed.
+
+\pagebreak
+
+###### Barplot of variable BEAMT
+```{r}
+counts<-table(Pr3c$BEAMT)
+barplot(counts,main="Barplot of BEAMT variable",
+        xlab="Civil Servant vs. Otherwise",
+        col=c("lightgrey","royalblue1"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Civil Servant"),fill=c("lightgrey","royalblue1"))
+```
+
+###### The vast majority of individuals are not civil servants.
+
+\pagebreak
+
+###### Barplot of variable UNEMPLOY
+```{r}
+counts<-table(Pr3c$UNEMPLOY)
+barplot(counts,main="Barplot of UNEMPLOY variable",
+        xlab="Unemployed vs. Otherwise",
+        col=c("green","red"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Unemployed"),fill=c("green","red"))
+```
+
+###### About a third of all individuals in the sample are unemployed.
+
+\pagebreak
+
+###### Barplot of variable PUBLIC
+```{r}
+counts<-table(Pr3c$PUBLIC)
+barplot(counts,main="Barplot of PUBLIC variable",
+        xlab="Insured in Public Health Insurance vs. Otherwise",
+        col=c("grey","steelblue1"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Insured in Public Health Insurance"),
+       fill=c("grey","steelblue1"))
+```
+
+###### The vast majority of individuals are insured in public health insurance.
+
+\pagebreak
+
+###### Barplot of variable ADDON
+```{r}
+counts<-table(Pr3c$ADDON)
+barplot(counts,main="Barplot of ADDON variable",
+        xlab= "Insured by Add-on Insurance vs. Otherwise",
+        col=c("gray94","lightcoral"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Insured by Add-on Insurance"),
+       fill=c("gray94","lightcoral"))
+```
+
+###### The vast majority of individuals were not insured by add-on insurance.
+
+\pagebreak
+
+###### Barplot of variable DOCTOR
+```{r}
+counts<-table(Pr3c$DOCTOR)
+barplot(counts,main="Barplot of DOCTOR variable",
+        xlab="DOCVIS > 0 vs. DOCVIS = 0",
+        col=c("royalblue","yellow"),
+        ylim = c(0,36000))
+legend('topright',c("DOCVIS = 0","DOCVIS > 0"),
+       fill=c("royalblue","yellow"))
+```
+
+###### The majority of individuals have visited a doctor in the last three months.
+
+\pagebreak
+
+###### Barplot of variable HOSPITAL
+```{r}
+counts<-table(Pr3c$HOSPITAL)
+barplot(counts,main="Barplot of HOSPITAL variable",
+        xlab="HOSPVIS > 0 vs. HOSPVIS = 0",
+        col=c("paleturquoise1","palevioletred1"),
+        ylim = c(0,36000))
+legend('topright',c("HOSPVIS = 0","HOSPVIS > 0"),
+       fill=c("paleturquoise1","palevioletred1"))
+```
+
+###### The vast majority of individuals have not gone to a hospital in the last calendar year.
+
+\pagebreak
+
+###### Barplot of variable HEALTHY
+```{r}
+counts<-table(Pr3c$HEALTHY)
+barplot(counts,main="Barplot of HEALTHY variable",
+        xlab="Self-Report as Healthy vs. Otherwise",
+        col=c("red","green"),
+        ylim = c(0,36000))
+legend('topright',c("Otherwise","Self-Report as Healthy"),
+       fill=c("red","green"))
+```
+
+###### The majority of individuals in the sample self-reported as being healthy.
+###### Note that this means around 35% of all individuals in the sample self-reported as not being healthy, which seems high.
+
+\pagebreak
+
+###### Barplot of variable YEAR1984
+```{r}
+counts<-table(Pr3c$YEAR1984)
+barplot(counts,main="Barplot of YEAR1984 variable",
+        xlab="YEAR1984 vs. Otherwise",
+        col=c("royalblue","yellow"),
+        ylim = c(0,36000))
+legend('topright',c("YEAR1984 = 0","YEAR1984 = 1"),fill=c("royalblue","yellow"))
+```
+
+###### A small proportion of the data is from 1984.
+
+\pagebreak
+
+###### Barplot of variable YEAR1985
+```{r}
+counts<-table(Pr3c$YEAR1985)
+barplot(counts,main="Barplot of YEAR1985 variable",
+        xlab="YEAR1985 vs. Otherwise",col=c("deepskyblue","gold"),
+        ylim = c(0,36000))
+legend('topright',c("YEAR1985 = 0","YEAR1985 = 1"),
+       fill=c("deepskyblue","gold"))
+```
+
+###### A small proportion of the data is from 1985.
+
+\pagebreak
+
+###### Barplot of variable YEAR1986
+```{r}
+counts<-table(Pr3c$YEAR1986)
+barplot(counts,main="Barplot of YEAR1986 variable",
+        xlab="YEAR1986 vs. Otherwise",
+        col=c("deepskyblue","gold"),
+        ylim = c(0,36000))
+legend('topright',c("YEAR1986 = 0","YEAR1986 = 1"),
+       fill=c("deepskyblue","gold"))
+```
+
+###### A small proportion of the data is from 1986, and it is practically the same proportion of the data as is from 1985.
+
+\pagebreak
+
+###### Barplot of variable YEAR1987
+```{r}
+counts<-table(Pr3c$YEAR1987)
+barplot(counts,main="Barplot of YEAR1987 variable",
+        xlab="YEAR1987 vs. Otherwise",
+        col=c("dodgerblue","goldenrod1"),
+        ylim = c(0,36000))
+legend('topright',c("YEAR1987 = 0","YEAR1987 = 1"),
+       fill=c("dodgerblue","goldenrod1"))
+```
+
+###### A small proportion of the data is from 1987.
+
+\pagebreak
+
+###### Barplot of variable YEAR1988
+```{r}
+counts<-table(Pr3c$YEAR1988)
+barplot(counts,main="Barplot of YEAR1988 variable",
+        xlab="YEAR1988 vs. Otherwise",
+        col=c("royalblue","yellow"),
+        ylim = c(0,36000))
+legend('topright',c("YEAR1988 = 0","YEAR1988 = 1"),
+       fill=c("royalblue","yellow"))
+```
+
+###### A small proportion of the data is from 1988.
+
+###### Barplot of variable YEAR1991
+```{r}
+counts<-table(Pr3c$YEAR1991)
+barplot(counts,main="Barplot of YEAR1991 variable",
+        xlab="YEAR1991 vs. Otherwise",
+        col=c("cornflowerblue","chocolate1"),
+        ylim = c(0,36000))
+legend('topright',c("YEAR1991 = 0","YEAR1991 = 1"),
+       fill=c("cornflowerblue","chocolate1"))
+```
+
+###### A small proportion of the data is from 1991.
+
+\pagebreak
+
+###### Barplot of variable YEAR1994
+```{r}
+counts<-table(Pr3c$YEAR1994)
+barplot(counts,main="Barplot of YEAR1994 variable",
+        xlab="YEAR1994 vs. Otherwise",col=c("royalblue","darkgoldenrod1"),
+        ylim = c(0,36000))
+legend('topright', c("YEAR1994 = 0","YEAR1994 = 1"),
+       fill=c("royalblue","darkgoldenrod1"))
+```
+
+###### A small proportion of the data is from 1994.
+
+\pagebreak
+
+#### Part I (c) $\newline$
+
+###### The following are the names of the variables: $\newline$
+```{r}
+names(Pr3)
+```
+
+#### **Estimating a linear regression model that includes all the variables:**
+* Note that we will not be using the variable **HSAT** but only **NEWHSAT** as the variable **HSAT** has 40 coding errors, and the Variable **NEWHSAT** fixes them.
+* We also will not use the variable **TI**, as noted perviously, as we are explicitly asked to ignore it in the Data Description.
+* Lastly, note that we are told that we can ignore all missing observations.
+
+#### **Code for linear regression:** $\newline$
+```{r}
+Pr3Ic <-lm(DOCVIS ~ ID + FEMALE + YEAR + AGE + HANDDUM
+                 + ALC + FAMHIST + HANDPER + HHKIDS + EDUC
+                 + MARRIED + HAUPTS + REALS + FACHHS + ABITUR
+                 + UNIV + WORKING + BLUEC + WHITEC + SELF
+                 + BEAMT + HOSPVIS + UNEMPLOY + PUBLIC + ADDON
+                 + NUMOBS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                 + YEAR1986 + YEAR1987 + YEAR1988 + YEAR1991
+                 + YEAR1994 + LOGINC + HOSPITAL + HHNINC + NEWHSAT
+                 + PRESCRIP, data = Pr3c)
+```
+
+#### **Showing results of linear regression model in table:**
+###### Note that the results for the residuals, coefficients, etc. are all displayed on the following page. $\newline$
+```{r}
+summary(Pr3Ic)
+```
+
+#### **Discussion: Results of Linear Regression**
+
+###### First, we observe that 2 coefficients are not defined due to singularities. This is because of multicollinearity:
+```{r}
+summary(lm(YEAR1991 ~ ID + FEMALE + YEAR + AGE + HANDDUM  + ALC + FAMHIST + HANDPER
++ HHKIDS + EDUC + MARRIED + HAUPTS + REALS + FACHHS + ABITUR + UNIV + WORKING + BLUEC
++ WHITEC + SELF + BEAMT + HOSPVIS + UNEMPLOY + PUBLIC + ADDON + NUMOBS + DOCTOR
++ HEALTHY + YEAR1984 + YEAR1985 + YEAR1986 + YEAR1987 + YEAR1988 + YEAR1994 + LOGINC
++ HOSPITAL + HHNINC + NEWHSAT + PRESCRIP, data = Pr3c))$r.sq
+```
+
+###### We observe that the R-squared value of a model for **YEAR1991** is equal to 1, confirming multicollinearity.
+```{r}
+summary(lm(YEAR1994 ~ ID + FEMALE + YEAR + AGE + HANDDUM + ALC + FAMHIST + HANDPER
++ HHKIDS + EDUC + MARRIED + HAUPTS + REALS + FACHHS + ABITUR + UNIV + WORKING + BLUEC
++ WHITEC + SELF + BEAMT + HOSPVIS + UNEMPLOY + PUBLIC + ADDON + NUMOBS + DOCTOR
++ HEALTHY + YEAR1984 + YEAR1985 + YEAR1986 + YEAR1987 + YEAR1988 + YEAR1991 + LOGINC
++ HOSPITAL + HHNINC + NEWHSAT + PRESCRIP, data = Pr3c))$r.sq
+```
+
+###### We observe that the R-squared value of a model for **YEAR1994** is also equal to 1, confirming multicollinearity.
+
+###### **We observe that the following explanatory variables are significant at the 0.001 level:**
+* ID
+* FEMALE
+* YEAR
+    + YEAR1984
+    + YEAR1985
+    + YEAR1986
+    + YEAR1987
+    + YEAR1988
+* HANDPER
+* EDUC
+* UNIV
+* HOSPVIS
+* DOCTOR
+* HEALTHY
+* HOSPITAL
+* NEWHSAT
+
+###### **We also observe that the following explanatory variables are significant at the 0.01 level:**
+* HANDDUM
+* HHKIDS
+* FACHHS
+* ABITUR
+
+###### **Lastly, we observe that the following explanatory variables are significant at the 0.1 level:**
+* AGE
+* PUBLIC
+* HHNINC
+
+###### Note that the intercept is also significant at the 0.001 level.
+###### The model's R-squared value is 0.2796 and Adjusted R-squared value is 0.2786. This means that the model is not particularly effective at estimating the number of a patient's doctor visits over a 3 month period.
+
+#### **Comments about specific explanatory variables and their relative impacts on the model's estimates:** $\newline$
+
+###### ***Miscellaneous Observation***
+###### We note that we find the statistical significance of **ID** very odd, given that identification numbers are usually completely random and since we saw in Part (a) that **ID** follows a relatively uniform distribution. However, we do note that the coefficient of the **ID** variable is negligible compared to the other explanatory variables. $\newline$
+
+###### ***Gender***
+###### Considering the **FEMALE** variable, we observe that an individual being female increases the extimated number of doctor visits over a 3 month period by 0.4167 visits. $\newline$
+
+###### ***Time/Year***
+###### Considering time, we observe that the coefficient of the **YEAR** variable is 0.3681, and the respective coefficients of the categorical year variables are:
+* **YEAR1984**: 3.370
+* **YEAR1985**: 2.857
+* **YEAR1986**: 2.824
+* **YEAR1987**: 1.862
+* **YEAR1988**: 1.247
+
+###### This means that as the time increases from the year 1984 to the year 1994, the quantitative **YEAR** variable results in an individual going to the doctor an estimated 0.3681(YEAR) additional times every 3 months. Just for the year 1984, this leads to an estimated 730.3104 additional doctor visits *- which does not make sense unless one takes into account the **Intercept**, which has a value of -730.4.*
+
+###### Also, on the particular years that we have a categorical year variable for (1984, 1985, 1986, 1987, 1988), every 3 months the individual is estimated to go to the doctor an additional amount corresponding to the coefficient of each of the categorical year variables, *on top of the estimated effect* of the **YEAR** quantitative variable for that year (which, as previously noted, should be considered in the context of the intercept). $\newline$
+
+###### ***Individual's Age***
+###### Considering **AGE**, an individual goes to the doctor an estimated additional 0.005836 times every 3 months for each year of their age. $\newline$
+
+###### ***Disability***
+###### Considering the **HANDDUM** variable, we observe that being handicapped increases an individual's estimated number of doctor visits in a 3 month period by 0.3546 visits. Considering the **HANDPER** variable, we observe that the degree of handicap a person has increases their estimated number of doctor visits in a 3 month period by 0.01621 *for each additional percent* of their degree of handicap. In particular, for someone who is 100 percent handicapped, the **HANDPER** variable's coefficient leads to that person going to the doctor an estimated 1.621 additional times in a 3 month period. $\newline$
+
+###### ***Children/Family***
+###### Considering **HHKIDS**, having children under 16 years of age in the household leads to an estimated *decrease* in doctor visits of 0.2246 in a 3 month period.
+\pagebreak
+
+###### ***Education***
+###### Considering **EDUC**, an individual is estimated to go to the doctor 0.1801 additional times every 3 months for each year of schooling they have.
+###### Considering **FACHHS**, **ABITUR**, **UNIV**, an individual having a Polytechnical degree, an Abitur, or a university degree as their highest level of schooling results in an estimated *decrease* in doctor visits over a 3 month period by 0.8039 visits, 0.8237 visits, and 0.7130 visits for each of the respective highest levels of schooling. $\newline$
+
+###### ***Health Information from Prior Health Behavior***
+###### Considering **HOSPVIS**, an individual's estimated number of hospital visits in the last calendar year increases the estimated number of times an individual goes to the doctor in a 3 month period by 0.2531 visits for each of their hospital visits in the last calendar year. This is in addition to the estimated impact of **HOSPITAL**, which increases an individual's estimated number of doctor visits in a 3 month period by 1.781 if an individual has gone to the hospital at all in the past calendar year. Considering **DOCTOR**, an individual having gone to the doctor in the past 3 months increases their estimated number of doctor visits in a 3 month period by 3.904 visits. 
+###### Also, considering **PUBLIC**, being insured in public health insurance has an estimated increase on doctor visits in a 3 month period by 0.2100 visits. $\newline$
+
+###### ***Self-Reported Health Information***
+###### Considering **NEWHSAT**, an individual is estimated to visit the doctor 0.6740 *less times* in a 3 month period for each additional point of health satisfaction (above zero) that they report. Also, someone who has self-reported as **HEALTHY** is estimated to visit the doctor 0.7116 *less times* in a 3 month period than someone who has not. \pagebreak
+
+## II. Model Building
+
+#### Part II (a)
+
+#### **Proposed nested regression model:**
+###### Based on our findings in Part (I), we propose a model that only includes the explanatory variables that had a p-value less than 0.05. So we remove from our model any variables that have a greater than 5% probability of not having any predictive power whatsoever (within our model) for estimating the number of doctor visits a patient has over a 3 month period.
+
+#### **We therefore include the following variables in our proposed model**:
+* ID
+* FEMALE
+* YEAR
+* HANDDUM
+* HANDPER
+* HHKIDS
+* EDUC
+* FACHHS
+* ABITUR
+* UNIV
+* HOSPVIS
+* DOCTOR
+* HEALTHY
+* YEAR1984
+* YEAR1985
+* YEAR1986
+* YEAR1987
+* YEAR1988
+* HOSPITAL
+* NEWHSAT
+
+#### **Code for linear regression to create proposed nested model:** $\newline$
+```{r}
+Pr3IIa <- lm(DOCVIS ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+```
+\pagebreak
+
+#### **Showing results of nested model in table:** $\newline$
+```{r}
+summary(Pr3IIa)
+```
+
+###### We note that the R-squared value is 0.2770 and Adjusted R-squared value is 0.2774.
+###### We observe that within our new nested model, the variables relating to education, such as years of education or highest educational degree, have the highest p-values. It is worth noting, however, that their p-values are relatively low, with **EDUC** having a p-value of 0.06883 and **ABITUR** having a p-value of 0.05585. The other two variables relating to education have p-values less than 0.05. Nonetheless, all four variables experienced an increase in their p-values after removing the variables with p-values greater than 0.05 from the original model.
+###### As in our orginal model, the nested model also has a very high value for its intercept (-716.4).
+\pagebreak
+
+#### Part II (b)
+#### **Testing for multicollinearity via VIF:**
+```{r}
+plot(vif(Pr3IIa))
+```
+
+###### We observe that we have some incredibly high VIFs. This suggests that there is multicollinearity between the explanatory variables in our nested model.
+#### **Analysis of VIFs:**
+```{r}
+vif(Pr3IIa)
+```
+
+###### We note that the variables related to time (**YEAR**, **YEAR1984**, **YEAR1985**, **YEAR1986**, **YEAR1987**, **YEAR1988**) have particularly high VIFs. Multicollinearity between the quantitative and categorical time variables does make sense.
+###### We also note that **EDUC** has a VIF of 6.1760. It is possible that the variables **FACHHS**, **ABITUR**, and **UNIV** predict doctor visits in a 3 month period just as well, if not better than, **EDUC**. This may indicate that the impact of education on doctor visits in a 3 month period may be better predicted by a stepwise function through the categorical variables than a linear function through the quantitative variable **EDUC**. \pagebreak
+
+#### **Conducting auxiliary regressions (for variables 1 - 10):**
+```{r}
+# Auxiliary Regression 1: **ID**
+Pr3IIb.IDar <- lm(ID ~ + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 2: **FEMALE**
+Pr3IIb.FEMALEar <- lm(FEMALE ~ ID + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 3: **YEAR**
+Pr3IIb.YEARar <- lm(YEAR ~ ID + FEMALE + HANDDUM + HANDPER + HHKIDS + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 4: **HANDDUM**
+Pr3IIb.HANDDUMar <- lm(HANDDUM ~ ID + FEMALE + YEAR + HANDPER + HHKIDS + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 5: **HANDPER**
+Pr3IIb.HANDPERar <- lm(HANDPER ~ ID + FEMALE + YEAR + HANDDUM + HHKIDS + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 6: **HHKIDS**
+Pr3IIb.HHKIDSar <- lm(HHKIDS ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 7: **EDUC**
+Pr3IIb.EDUCar <- lm(EDUC ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 8: **FACHHS**
+Pr3IIb.FACHHSar <- lm(FACHHS ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 9: **ABITUR**
+Pr3IIb.ABITURar <- lm(ABITUR ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC
+                  + FACHHS
+                  + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 10: **UNIV**
+Pr3IIb.UNIVar <- lm(UNIV ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC
+                  + FACHHS
+                  + ABITUR + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+```
+\pagebreak
+
+#### **Conducting auxiliary regressions (for variables 11 - 20):**
+```{r}
+# Auxiliary Regression 11: **HOSPVIS**
+Pr3IIb.HOSPVISar <- lm(HOSPVIS ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC
+                  + FACHHS
+                  + ABITUR + UNIV + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 12: **DOCTOR**
+Pr3IIb.DOCTORar <- lm(DOCTOR ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC
+                  + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 13: **HEALTHY**
+Pr3IIb.HEALTHYar <- lm(HEALTHY ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS + EDUC
+                  + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 14: **YEAR1984**
+Pr3IIb.YEAR1984ar <- lm(YEAR1984 ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS
+                  + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 15: **YEAR1985**
+Pr3IIb.YEAR1985ar <- lm(YEAR1985 ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS
+                  + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 16: **YEAR1986**
+Pr3IIb.YEAR1986ar <- lm(YEAR1986 ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS
+                  + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1987 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 17: **YEAR1987**
+Pr3IIb.YEAR1987ar <- lm(YEAR1987 ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS
+                  + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1988 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 18: **YEAR1988**
+Pr3IIb.YEAR1988ar <- lm(YEAR1988 ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS
+                  + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + HOSPITAL + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 19: **HOSPITAL**
+Pr3IIb.HOSPITALar <- lm(HOSPITAL ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS
+                  + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + NEWHSAT, data = Pr3c)
+# Auxiliary Regression 20: **NEWHSAT**
+Pr3IIb.NEWHSATar <- lm(NEWHSAT ~ ID + FEMALE + YEAR + HANDDUM + HANDPER + HHKIDS
+                  + EDUC + FACHHS
+                  + ABITUR + UNIV + HOSPVIS + DOCTOR + HEALTHY + YEAR1984 + YEAR1985
+                  + YEAR1986 + YEAR1987 + YEAR1988 + HOSPITAL, data = Pr3c)
+```
+###### R-squared values of auxiliary regressions on the following page.
+\pagebreak
+
+#### **Summary of Auxiliary Regression Results**
+```{r}
+Pr3IIb.a <- rownames(summary(Pr3IIa)$coefficients)[2:21]
+Pr3IIb.b <- c(summary(Pr3IIb.IDar)$r.squared, summary(Pr3IIb.FEMALEar)$r.squared,
+summary(Pr3IIb.YEARar)$r.squared, summary(Pr3IIb.HANDDUMar)$r.squared, 
+summary(Pr3IIb.HANDPERar)$r.squared, summary(Pr3IIb.HHKIDSar)$r.squared, 
+summary(Pr3IIb.EDUCar)$r.squared, summary(Pr3IIb.FACHHSar)$r.squared, 
+summary(Pr3IIb.ABITURar)$r.squared, summary(Pr3IIb.UNIVar)$r.squared, 
+summary(Pr3IIb.HOSPVISar)$r.squared, summary(Pr3IIb.DOCTORar)$r.squared, 
+summary(Pr3IIb.HEALTHYar)$r.squared, summary(Pr3IIb.YEAR1984ar)$r.squared, 
+summary(Pr3IIb.YEAR1985ar)$r.squared, summary(Pr3IIb.YEAR1986ar)$r.squared, 
+summary(Pr3IIb.YEAR1987ar)$r.squared, summary(Pr3IIb.YEAR1988ar)$r.squared, 
+summary(Pr3IIb.HOSPITALar)$r.squared, summary(Pr3IIb.NEWHSATar)$r.squared)
+```
+
+###### Below are the R-squared values that resulted from each of the auxiliary regressions:
+```{r}
+Pr3IIbAuxiliaryRegressionResults <- data.frame(Pr3IIb.a, Pr3IIb.b)
+colnames(Pr3IIbAuxiliaryRegressionResults) <- c("Variable","R-squared")
+format(Pr3IIbAuxiliaryRegressionResults, justify = "left")
+```
+
+###### We recall that the R-squared value of the nested model is 0.2779, and so any of the auxiliary regression R-squared values being above 0.2779 means that  multicollinearity is a concern (due to Klein's rule).
+\pagebreak
+
+#### **Analysis of Nested Model p-values, VIF, and Auxiliary Regression Results**
+
+#### ***Time Variables***
+###### We note that the **YEAR** variable regression resulted in an R-squared value of 0.93787520, and that all the time categorical variable (**YEAR1984**, **YEAR1985**, **YEAR1986**, **YEAR1987**, **YEAR1988**) regressions have R-squared values above 0.8, with two of them having R-squared values above 0.9. Since the time categorical variables can likely be predicted by the time quantitative variable **YEAR**, we will keep the variable **YEAR** in our model and discard the time categorical variables.
+
+#### ***Education Variables***
+###### First, recall that in our nested model, **EDUC** had a p-value of 0.06883 and **ABITUR** had a p-value of 0.05585. So, without even looking at the R-squared values of the auxiliary regressions, we know that these are variables we may want to discard.
+###### We then observe that the regression for **EDUC** has a high R-squared value of 0.83808379, but that the regressions of **FACHHS**, **ABITUR**, and **UNIV** have R-squared values of 0.37628558, 0.73764197, and 0.65296050, respectively. Basically, the other variables are not good predictors of **FACHHS* and possibly **UNIV** but are good predictors of **EDUC**. We note that **FACHHS** has a VIF value of 1.6033 and **UNIV** has a VIF value of 2.8815, whereas **EDUC** has a VIF value of 6.1760 and **ABITUR** has a VIF value of 3.8116.
+###### Based on the p-values, the VIF values, and the R-squared values of the auxiliary regressions, we choose to discard **EDUC** and **ABITUR** from our model, while retaining **FACHHS** and **UNIV**.
+
+#### ***Health Information Variables***
+###### We recall that in the nested model, **HANDDUM** had a p-value of 0.00489, which is the highest p-value outside of the education variable p-values mentioned above.
+###### We note that the **NEWHSAT** auxiliary regression resulted in an R-squared value of 0.71443566. We also note that the **HANDDUM**, **HANDPER**, and **HEALTHY** auxiliary regressions resulted in R-squared values of 0.69469170, 0.51206932, and 0.69478150, respectively. So **HANDDUM** is better predicted by the other variables than **HANDPER** is. Also, **HANDDUM** has a VIF value of 3.2754, whereas **HANDPER** has a VIF value of 2.0495. Looking at health specifically, we hypothesize that **HEALTHY** is can be predicted by **NEWHSAT**, in addition to variables like **HOSPVIS**, **HOSPITAL**, **DOCTOR**, and possibly even **HANDPER**. Also, both **HEALTHY** and **NEWHSAT** have R-squared values close to one another and are both self-reported measures of health or satisfaction with health. 
+###### Based on our analysis, we choose to discard the variables **HANDDUM** and **HEALTHY** from our model.
+
+#### **We are therefore left with the following variables for our model $M_{0}$:**
+* ID
+* FEMALE
+* YEAR
+* HANDPER
+* HHKIDS
+* FACHHS
+* UNIV
+* HOSPVIS
+* DOCTOR
+* HOSPITAL
+* NEWHSAT
+\pagebreak
+
+#### Part II (c)
+#### **Analysis of $M_{0}$:**
+```{r}
+M0 <- lm(DOCVIS ~ ID + FEMALE + YEAR + HANDPER + HHKIDS + FACHHS
+                  + UNIV + HOSPVIS + DOCTOR + HOSPITAL + NEWHSAT, data = Pr3c)
+summary(M0)
+```
+###### $\newline$
+
+###### We observe that **FACHHS** is no longer statistically significant at a reasonable level and so choose to remove it from our model and denote this new model as $M_{1}$: $\newline$
+```{r}
+M1 <- lm(DOCVIS ~ ID + FEMALE + YEAR + HANDPER + HHKIDS + UNIV
+           + HOSPVIS + DOCTOR + HOSPITAL + NEWHSAT, data = Pr3c)
+```
+###### $\newline$
+###### We analyze this new model $M_{1}$ on the next page.
+\pagebreak
+
+#### **Analysis of $M_{1}$:**
+```{r}
+summary(M1)
+```
+
+###### After discarding **FACHHS** from our model, all our variables are now statistically significant at the 0.01 level.
+###### Note that **ID** is still statistically significant, although it has a negligible impact on the estimated value of **DOCVIS**. $\newline$
+
+###### We proceed to test for multicollinearity in model $M_{1}$ on the next page.
+\pagebreak
+
+#### **Testing for multicollinearity within model via VIF:**
+```{r}
+plot(vif(M1))
+```
+
+###### We observe that all the VIF values are close to 1, so we can safely say that multicollinearity will not be a problem for this model.
+###### Note that the highest VIF values are for **HOSPVIS** and **HOSPITAL**, which makes sense, but observe that they are still low VIF values. $\newline$
+
+###### Thus, we choose to proceed with $M_{1}$ which we will henceforth call $M_{2}:$.
+```{r}
+M2 <- M1
+```
+\pagebreak
+
+#### Part II (d)
+#### **Data Imputation** $\newline$
+###### **NOTE:** The original data set from moodle is **Pr3**. After we observed that more than 99.89% of our data in **Pr3** did not have missing values, we used the complete.cases() function to remove all the observations with missing values and called the new data set **Pr3c**. For all our analysis so far, **Pr3c** is the data set we have been using. So to impute all missing values, we must again use the original data set **Pr3**.
+###### We proceed to impute all missing values in our predictors for the data set **Pr3new** (exact copy of **Pr3**):
+```{r}
+Pr3new <- Pr3
+imputedPr3 = impute(Pr3, target = character(0), cols = list(x = 99, y = imputeMode()))
+# (1) Imputation for ID:
+Pr3IId.na.ID <- is.na(Pr3new$ID)
+Pr3new$ID[Pr3IId.na.ID] <- imputedPr3$ID[Pr3IId.na.ID]
+# (2) Imputation for FEMALE:
+Pr3IId.na.FEMALE <- is.na(Pr3new$FEMALE)
+Pr3new$FEMALE[Pr3IId.na.FEMALE] <- imputedPr3$FEMALE[Pr3IId.na.FEMALE]
+# (3) Imputation for YEAR:
+Pr3IId.na.YEAR <- is.na(Pr3new$YEAR)
+Pr3new$YEAR[Pr3IId.na.YEAR] <- imputedPr3$YEAR[Pr3IId.na.YEAR]
+# (4) Imputation for HANDPER:
+Pr3IId.na.HANDPER <- is.na(Pr3new$HANDPER)
+Pr3new$HANDPER[Pr3IId.na.HANDPER] <- imputedPr3$HANDPER[Pr3IId.na.HANDPER]
+# (5) Imputation for HHKIDS:
+Pr3IId.na.HHKIDS <- is.na(Pr3new$HHKIDS)
+Pr3new$HHKIDS[Pr3IId.na.HHKIDS] <- imputedPr3$HHKIDS[Pr3IId.na.HHKIDS]
+# (6) Imputation for UNIV:
+Pr3IId.na.UNIV <- is.na(Pr3new$UNIV)
+Pr3new$UNIV[Pr3IId.na.UNIV] <- imputedPr3$UNIV[Pr3IId.na.UNIV]
+# (7) Imputation for HOSPVIS:
+Pr3IId.na.HOSPVIS <- is.na(Pr3new$HOSPVIS)
+Pr3new$HOSPVIS[Pr3IId.na.HOSPVIS] <- imputedPr3$HOSPVIS[Pr3IId.na.HOSPVIS]
+# (8) Imputation for DOCTOR:
+Pr3IId.na.DOCTOR <- is.na(Pr3new$DOCTOR)
+Pr3new$DOCTOR[Pr3IId.na.DOCTOR] <- imputedPr3$DOCTOR[Pr3IId.na.DOCTOR]
+# (9) Imputation for HOSPITAL:
+Pr3IId.na.HOSPITAL <- is.na(Pr3new$HOSPITAL)
+Pr3new$HOSPITAL[Pr3IId.na.HOSPITAL] <- imputedPr3$HOSPITAL[Pr3IId.na.HOSPITAL]
+# (10) Imputation for NEWHSAT:
+Pr3IId.na.NEWHSAT <- is.na(Pr3new$NEWHSAT)
+Pr3new$NEWHSAT[Pr3IId.na.NEWHSAT] <- imputedPr3$NEWHSAT[Pr3IId.na.NEWHSAT]
+```
+
+###### We reestimate our model using the predictors without missing values and denote this new model as $M_{3}$:
+```{r}
+M3 <- lm(DOCVIS ~ ID + FEMALE + YEAR + HANDPER + HHKIDS + UNIV
+           + HOSPVIS + DOCTOR + HOSPITAL + NEWHSAT, data = Pr3new)
+```
+
+###### We compare the AIC and BIC values of the two models:
+```{r}
+print(data.frame(AIC(M3,M2), BIC(M3,M2)))
+```
+\pagebreak
+
+###### We compare $M_{2}$ with $M_{3}$:
+```{r}
+stargazer(M2, M3, title="M2 vs. M3", align = TRUE, header = FALSE, type = 'text',
+digits = 7, order=c("Constant"), model.names = FALSE, column.labels = c("M2", "M3"))
+```
+\pagebreak
+
+#### **Conclusion: Comparison of AIC, BIC, and R-squared** $\newline$
+###### We observe that $M_{2}$ has a lower AIC, as well as a lower BIC, than $M_{3}$.
+###### Also, $M_{2}$ has marginally higher R-squared and Adjusted R-squared values than $M_{3}$. $\newline$
+###### Basically, $M_{2}$ is a better model than $M_{3}$.
+\pagebreak
+
+#### Part II (e)
+
+```{r}
+resettest(M3, power=2, type="regressor")
+```
+
+###### Due to the low p-value, we reject the null hypothesis that the functional form of the model is adequate.
+
+```{r}
+summary(M3)
+```
+
+###### We first observe from the summary of $M_{3}$ that the variables **YEAR** and **UNIV** have the highest p-values.
+###### *We choose to include the following additional terms in our model:* **(1)** We note that it is possible that time may be better represented as a quadratic term than a linear term so we decide to include a **YEAR^2^** term in the model. **(2)** There may be diminishing returns to health satisfaction, so we will include an **NEWHSAT^2^** term in our model as well. **(3)** Since those with a higher degree of disability may exhibit different behavior in visiting the doctor than those wil a lower degree of disability, we also include a **HANDPER^2^** term in our model. **(4)** We also note that it is possible that **UNIV** and **NEWHSAT** may be better represented in the model through an interaction term **(UNIV)(NEWHSAT)** as individuals who attend university and are not satisfied with their health may go to the doctor more often. **(5)** Similarly, those who are female and have children may exhibit different behavior than the rest of the population in number of doctor visits. So we include a **(FEMALE)(HHKIDS)** interaction term in our model as well.
+
+###### **We define a new model $M_{4}$:**
+```{r}
+M4 <- lm(DOCVIS ~ ID + FEMALE + YEAR + I(YEAR*YEAR) + HANDPER + I(HANDPER*HANDPER)
+         + HHKIDS + UNIV + HOSPVIS + DOCTOR + HOSPITAL + NEWHSAT + I(NEWHSAT*NEWHSAT)
+         + I((UNIV)*(NEWHSAT)) + I((FEMALE)*(HHKIDS)), data = Pr3new)
+```
+
+###### **Analysing new model $M_{4}$**
+```{r}
+summary(M4)
+```
+
+###### We observe that the **HHKIDS** term is no longer significant, but the **(FEMALE)(HHKIDS)** term is significant, as are all the other quadratic and interaction terms we added to the model.
+
+###### We compare the AIC and BIC values of the two models:
+```{r}
+print(data.frame(AIC(M4,M3), BIC(M4,M3)))
+```
+\pagebreak
+
+###### We compare $M_{3}$ with $M_{4}$:
+```{r}
+stargazer(M3, M4, title="M3 vs. M4", align = TRUE, header = FALSE, type = 'text',
+digits = 7, order=c("Constant"), model.names = FALSE, column.labels = c("M3", "M4"),
+no.space = TRUE)
+```
+\pagebreak
+
+#### **Conclusion: Comparison of AIC, BIC, and R-squared** $\newline$
+###### We observe that $M_{4}$ has a lower AIC, as well as a lower BIC, than $M_{3}$.
+###### Also, $M_{4}$ has higher R-squared and Adjusted R-squared values than $M_{3}$. $\newline$
+###### Basically, $M_{4}$ is a better model than $M_{3}$. Therefore, we elect to continue with $M_{4}$.
+\pagebreak
+
+#### Part II (f)
+
+## Mallows CP
+
+###### Calculating Mallows CP statistics for M3 and M4:
+```{r}
+M3MallowsCP = ( (anova(M3)[11,2])/(anova(M3)[11,3]) - 27326 + (2*10) )
+M4MallowsCP = ( (anova(M4)[16,2])/(anova(M4)[16,3]) - 27326 + (2*15) )
+print(data.frame(c("M3",M3MallowsCP),c("M4", M4MallowsCP))[1:2,])
+```
+
+###### M3 has a Mallows CP value of 9 and M4 has a Mallows CP value of 14. Due to both models having CP values close to the value of the number of parameters, they are both reasonably good models.
+
+#### **Choosing preferred model based on Mallows CP statistic**:
+###### We know that the Mallows CP statistic will punish us for having unnecessary parameters in our model, as well as for having a lot of unnecessary parameters. In order to choose a model based on the Mallows CP statistic, we proceed first by looking at what parameters we can eliminate without substantially reducing the effectiveness of the model.
+
+###### We look at Mallows CP values for subsets of the variables used in M4:
+```{r fig.height= 3.75}
+regsubsets.Pr3IIfi <- regsubsets(DOCVIS ~ ID + FEMALE + YEAR + I(YEAR*YEAR) + HANDPER
+    + I(HANDPER*HANDPER) + HHKIDS + UNIV + HOSPVIS + DOCTOR + HOSPITAL + NEWHSAT
+    + I(NEWHSAT*NEWHSAT), data = Pr3new, nbest = 3, nvmax = NULL, force.in = NULL,
+    force.out = NULL, method = "exhaustive")
+res.legend <- subsets(regsubsets.Pr3IIfi,statistic="cp",legend=T,main="Mallows CP")
+abline(a = 1, b = 1, lty = 2)
+```
+
+###### We taker a closer look at the **lower** range of Mallows CP values:
+```{r fig.height= 3.5}
+res.legend <- subsets(regsubsets.Pr3IIfi,statistic="cp",legend=F,main="Mallows CP",
+        xlim = c(6,15), ylim = c(0,250), cex = 0.7)
+abline(a = 1, b = 1, lty = 2)
+```
+
+###### We then take a closer look at the **lowest** range of Mallows CP values:
+```{r fig.height= 3.5}
+res.legend <- subsets(regsubsets.Pr3IIfi,statistic="cp",legend=F,main="Mallows CP",
+xlim = c(-35,25), ylim = c(0,25), cex = 0.7)
+abline(a = 1, b = 1, lty = 2)
+```
+\pagebreak
+
+###### We analyze different subsets of parameters compared to their R-squared values to see which parameters we can remove from our model, in order to achieve a lower Mallows CP value:
+```{r fig.height= 6}
+par(cex.axis = 0.7, mai=c(1.02,0,0,0), mgp=c(10,0.75,0))
+plot(regsubsets.Pr3IIfi, scale = "adjr2", main = "Parameters vs. Adjusted R-Squared", 
+col = rainbow(100000))
+```
+
+###### We observe that most models that reach high Adjusted R-squared values do so without the variable **UNIV**. We also note that the variables **ID**, **HHKIDS**, and **HOSPVIS** are not necessary for high Adjusted R-squared values. Lastly, we note that the **YEAR** and **(YEAR)(YEAR)** variables are also unnecessary for high Adjusted R-squared values. We therefore elect to remove all these variables from our model, and are left with:
+* FEMALE
+* HANDPER
+* I(HANDPER*HANDPER)
+* DOCTOR
+* HOSPITAL
+* NEWHSAT
+* I(NEWHSAT*NEWHSAT)
+\pagebreak
+
+###### We proceed to plot Mallows CP and Adjusted R-squared values of models based on the chosen variables:.
+```{r fig.height = 4.9}
+regsubsets.Pr3IIfii <- regsubsets(DOCVIS ~ FEMALE + HANDPER + I(HANDPER*HANDPER)
+    + DOCTOR + HOSPITAL  + NEWHSAT + I(NEWHSAT*NEWHSAT), data = Pr3new, nbest = 3, 
+    nvmax = NULL, force.in = NULL, force.out = NULL, method = "exhaustive")
+
+layout(matrix(1:4, nrow = 2))
+res.legend <- subsets(regsubsets.Pr3IIfii, statistic="adjr2", cex = 0.7, legend = TRUE,
+min.size = 1, main = "Adjusted R-Squared")
+res.legend <- subsets(regsubsets.Pr3IIfii, statistic="cp", cex = 0.8, legend = TRUE,
+min.size = 1, main = "Mallows CP")
+abline(a = 1, b = 1, lty = 2)
+res.legend <- subsets(regsubsets.Pr3IIfii, statistic="adjr2", cex = 0.7,
+    legend = TRUE, min.size = 1, main = "Adjusted R-Squared (zoomed in)",
+    xlim = c(0,8), ylim = c(0.275,0.285))
+res.legend <- subsets(regsubsets.Pr3IIfii, statistic="cp", cex = 0.8,
+    legend = TRUE, min.size = 1, main = "Mallows CP (zoomed in)", xlim = c(0,8),
+     ylim = c(0,100))
+abline(a = 1, b = 1, lty = 2)
+```
+
+###### By using the Mallows CP statistic, we thus observe that the model we have chosen maximizes its Adjusted R-squared value while minimizing the number of parameters it uses. We denote this model as $M_{5}$:
+```{r}
+M5 <- lm(DOCVIS ~ FEMALE + HANDPER + I(HANDPER*HANDPER) + DOCTOR
+       + HOSPITAL  + NEWHSAT + I(NEWHSAT*NEWHSAT), data = Pr3new)
+```
+
+\pagebreak
+
+## III. Model Validation
+
+#### Part III (a)
+
+#### **Plotting Residuals vs. Fitted Values** $\newline$
+```{r fig.height= 5.2}
+plot(fitted(M5),residuals(M5), main = "Residuals vs. Fitted Values")
+lm(fitted(M5)~residuals(M5))
+abline(lm(fitted(M5)~residuals(M5)))
+```
+
+###### The mean of the residuals is greater than zero. There does appear to be a pattern in the residual values. For instance, between fitted values of around -1 to 3.5, the residuals follow a linear pattern. Also, between fitted values of 3.5 to 15, there appear to be vertical bars of clustered residual values.
+
+\pagebreak
+
+#### Part III (b)
+
+#### **Histogram of Residuals** $\newline$
+```{r}
+hist(residuals(M5))
+```
+
+#### **Jarque-Bera Test** $\newline$
+```{r}
+jarque.bera.test(residuals(M5))
+```
+
+###### Due to the low p-value, we reject the null hypothesis and conclude that the residuals of $M_{5}$ do not follow a normal distribution.
+
+\pagebreak
+
+#### Part III (c)
+
+#### **Plotting Cook's Distance Values** $\newline$
+```{r}
+plot(cooks.distance(M5), main = "Cook's Distance Values vs. Observation Number")
+```
+
+###### **Considering Outliers:** $\newline$
+```{r}
+Pr3IIIcOutliers <- Pr3new[which(cooks.distance(M5)>(4*mean(cooks.distance(M5)))),]
+str(Pr3IIIcOutliers[,0])
+```
+
+###### Observe that there are **804** observations that can be considered outliers. $\newline$. Note that we consider any observation with a Cook's Distance value 4 times or greater the mean on the Cook's Distance values to be an outlier.
+###### Note also that since we have 27,326 observations, 804 outliers account for less than **3%** of all the observations in our data. $\newline$
+
+###### Since less than 2% of the observations are outliers, we propose removing them from our data set. We proceed to do just that: $\newline$
+```{r}
+Pr3IIInooutliers<-Pr3new[-which(cooks.distance(M5)>(4*mean((cooks.distance(M5))))),]
+```
+
+\pagebreak
+
+###### We now proceed to reestimate our model using just the data without outliers:
+```{r}
+M6 <- lm(DOCVIS ~ FEMALE + HANDPER + I(HANDPER*HANDPER) + DOCTOR
+       + HOSPITAL  + NEWHSAT + I(NEWHSAT*NEWHSAT), data = Pr3IIInooutliers)
+summary(M6)
+```
+
+###### We observe that all the explanatory variables in our model are statistically significant. In addition, the Adjusted R-squared value of the new $M_{6}$ is 0.3767, which is substantially higher than the 0.2842 Adjusted R-squared value of $M_{5}$.
+
+\pagebreak
+
+#### Part III (d) $\newline$
+
+```{r}
+qqnorm(fitted(M6), xlim = c(-5,5), ylim = c(-1,10))
+abline(a = 1, b = 1, lty = 2)
+```
+
+###### Observe that the quantiles from $M_{6}$ do not match the theoretical quantiles. This implies that the fitted data does not follow a normal distribution.
+
+\pagebreak
+
+#### Part III (e) $\newline$
+
+###### We proceed to plot observed vs. fitted values but note that there is an NA value in the original data set (we were instructed to impute all missing values in our predictors only - not the entire data set). Thus we plot the fitted values of $M_{6}$ only to the non-missing data in the data set: $\newline$
+```{r}
+scatter.smooth(Pr3IIInooutliers$DOCVIS[!is.na(Pr3IIInooutliers$DOCVIS)],
+               fitted(M6), lpars=list(col="red",lwd=3,lty=3),
+               xlab = "observed", main = "Predicted vs. Observed Values")
+```
+
+###### We note that the predicted values correspond very well to observed values between 0 and about 3 or 4. As the magnitude of the observed values increases, the fitted values begin to diverge from the observed values.
+\pagebreak
+
+#### Part III (f)
+
+#### **Oaxaca Decomposition** $\newline$
+```{r}
+oaxaca.results.1 <- oaxaca(DOCVIS ~ FEMALE + HANDPER + I(HANDPER*HANDPER) + DOCTOR
+      + HOSPITAL  + NEWHSAT + I(NEWHSAT*NEWHSAT) | FEMALE, data = Pr3IIInooutliers)
+```
+
+\pagebreak
+
+```{r fig.height= 6.2}
+plot(oaxaca.results.1)
+```
+
+###### Note that the *Endowments* are the explained differences based on  the explanatory variables, and the *Coefficients* are the unexplained differences that are not explained by differences in the explanatory variables.
+
+###### We note a few interesting observations. First of all, we observe that the **DOCTOR** variable results in an endowment of around $-0.6$ and that **NEWHSAT** results in an endowment of around $-0.25$. So these differences are the result of explanatory variables across groups.
+
+###### Then, considering the unexplained variables, the coefficients, we note that females have a negative intercept and also have a negative estimate for the **DOCTOR** variable. However, due to the size of the confidence interval for the intercept, it is difficult to  properly extract meaning out of the value. 
+###### Also, we note that the variables **NEWHSAT** and **NEWHSAT^2^** have unexplained positive estimates, but that their estimates are difficult to interpret as they have incredibly wide confidence intervals.
+
+###### In general, outside of the **DOCTOR** variable, none of the other unexplained differences are both reasonably statistially interpretable and significant.
+
+\pagebreak
+
+#### Part III (g)  $\newline$
+
+```{r}
+Pr3IIIfprediction<-data.frame(FEMALE = 0, YEAR = 1991, HANDPER = 0,
+                              DOCTOR = 0, HOSPITAL = 1, NEWHSAT = 8)
+predict(M6,Pr3IIIfprediction,interval="confidence")
+```
+
+###### We predict that an individual who is not handicapped, is quite satisfied with his health, who has not visited the doctor in the last three months, but who has gone to the hospital in the last year - would be unlikely to visit the doctor. Our prediction supports this conclusion.
+###### The estimate is 0.5520883 and the 95% confidence interval is (0.4060911,0.6980856).
+
+\pagebreak
+
+## IV. Hypotheses Tests
+
+#### Part IV (a) **Differences in Differences**
+
+###### **i. Determine whether or not the policy worked for women.**
+###### Our null hypothesis will be that womens' doctor visits *did not change* during or after 1987. For this we will test the mean value of doctor visits for females. Our alternate hypothesis will be that womens' doctor visits *increased* during or after 1987.
+
+```{r}
+Pr3IViA <- Pr3IIInooutliers[Pr3IIInooutliers$FEMALE == "1"
+                          & Pr3IIInooutliers$YEAR >= "1987",]$DOCVIS
+Pr3IViB <- Pr3IIInooutliers[Pr3IIInooutliers$FEMALE == "1"
+                          & Pr3IIInooutliers$YEAR < "1987",]$DOCVIS
+t.test(Pr3IViA, Pr3IViB, alternative = "greater") 
+```
+
+###### We observe that the p-value is around 0.5688, which is relatively high. Thus, we fail to reject the null hypothesis.
+
+###### **ii. Determine whether or not the policy worked for unemployed.**
+###### Our null hypothesis will be that there will be *no difference* between how much unemployed individuals visited the doctor before 1987 and how much they visited the doctor during or after 1987. For this, we will test the mean value of doctor visits for unemployed individuals. Our alternate hypothesis will be that the doctor visits of unemployed individuals *increased* during or after 1987.
+```{r}
+Pr3IViiA <- Pr3IIInooutliers[Pr3IIInooutliers$WORKING == "0"
+                          & Pr3IIInooutliers$YEAR >= "1987",]$DOCVIS
+Pr3IViiB <- Pr3IIInooutliers[Pr3IIInooutliers$WORKING == "0"
+                          & Pr3IIInooutliers$YEAR < "1987",]$DOCVIS
+t.test(Pr3IViiA, Pr3IViiB, alternative = "greater") 
+```
+
+###### We observe that the p-value is around 0.4487, which is relatively high. Thus, we fail to reject the null hypothesis.
+
+\pagebreak
+
+#### Part IV (b)
+
+###### We test the hypothesis that the number of doctor visits a patient has over a 3 month period is greater for women than for men.
+```{r}
+Pr3IVb1 <- Pr3IIInooutliers[Pr3IIInooutliers$FEMALE == "1",]$DOCVIS
+Pr3IVb2 <- Pr3IIInooutliers[Pr3IIInooutliers$FEMALE == "0",]$DOCVIS
+t.test(Pr3IVb1, Pr3IVb2, alternative = "greater") 
+```
+
+###### Due to the low p-value, we reject the null hypothesis and conclude that the number of doctor visits a patient has over a 3 month period is greater for women than for men.
+
+\pagebreak
+
+#### Part IV (c)
+
+###### We test the hypothesis that the number of doctor visits a patient has over a 3 month period is different for women with children than for women without children.
+```{r}
+Pr3IVc1 <- Pr3IIInooutliers[Pr3IIInooutliers$FEMALE == "1"
+                          & Pr3IIInooutliers$HHKIDS == "1",]$DOCVIS
+Pr3IVc2 <- Pr3IIInooutliers[Pr3IIInooutliers$FEMALE == "1"
+                          & Pr3IIInooutliers$HHKIDS == "0",]$DOCVIS
+t.test(Pr3IVc1, Pr3IVc2, alternative = "two.sided") 
+
+```
+
+###### Due to the low p-value, we reject the null hypothesis and conclude that the number of doctor visits a patient has over a 3 month period is greater for women with children than for women without children.
